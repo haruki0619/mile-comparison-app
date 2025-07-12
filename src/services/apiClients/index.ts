@@ -8,15 +8,19 @@ export class FlightAPIAggregator {
 
   constructor() {
     // 環境変数からAPIキーを取得
-    const skyscannerKey = process.env.NEXT_PUBLIC_SKYSCANNER_API_KEY;
     const rakutenAppId = process.env.NEXT_PUBLIC_RAKUTEN_APP_ID;
 
-    if (skyscannerKey) {
-      this.skyscannerClient = new SkyscannerClient(skyscannerKey);
-    }
+    // Skyscanner APIは商用利用のみのため一時的に無効化
+    // const skyscannerKey = process.env.NEXT_PUBLIC_SKYSCANNER_API_KEY;
+    // if (skyscannerKey) {
+    //   this.skyscannerClient = new SkyscannerClient(skyscannerKey);
+    // }
 
     if (rakutenAppId) {
       this.rakutenClient = new RakutenTravelClient(rakutenAppId);
+      console.log('✅ 楽天トラベルAPIクライアント初期化完了');
+    } else {
+      console.warn('⚠️ 楽天トラベルAPIキーが設定されていません。モックデータを使用します。');
     }
   }
 
@@ -24,33 +28,31 @@ export class FlightAPIAggregator {
     const results: UnifiedFlightOffer[] = [];
     const errors: string[] = [];
 
-    // 並行してすべてのAPIを呼び出し
-    const promises: Promise<APIResponse<UnifiedFlightOffer[]>>[] = [];
-
-    if (this.skyscannerClient) {
-      promises.push(this.skyscannerClient.searchFlights(params));
-    }
-
+    // 楽天トラベルAPIを優先して使用（国内線の場合）
     if (this.rakutenClient && this.isDomesticRoute(params)) {
-      promises.push(this.rakutenClient.searchDomesticFlights(params));
-    }
-
-    // APIが設定されていない場合はモックデータを使用
-    if (promises.length === 0) {
-      console.warn('No API clients configured, using mock data');
-      return this.getMockFlightData(params);
-    }
-
-    const responses = await Promise.allSettled(promises);
-
-    for (const response of responses) {
-      if (response.status === 'fulfilled' && response.value.success) {
-        results.push(...(response.value.data || []));
-      } else if (response.status === 'fulfilled' && response.value.error) {
-        errors.push(response.value.error.message);
-      } else if (response.status === 'rejected') {
-        errors.push(response.reason?.message || 'Unknown error');
+      console.log('🔍 楽天トラベルAPIで国内線検索中...');
+      try {
+        const rakutenResponse = await this.rakutenClient.searchDomesticFlights(params);
+        if (rakutenResponse.success && rakutenResponse.data) {
+          results.push(...rakutenResponse.data);
+          console.log(`✅ 楽天トラベルAPI: ${rakutenResponse.data.length}件の結果を取得`);
+        } else if (rakutenResponse.error) {
+          errors.push(`楽天トラベルAPI: ${rakutenResponse.error.message}`);
+        }
+      } catch (error) {
+        errors.push(`楽天トラベルAPI例外: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
+    }
+
+    // Skyscanner APIは一時的に無効化（商用利用制限のため）
+    // if (this.skyscannerClient) {
+    //   promises.push(this.skyscannerClient.searchFlights(params));
+    // }
+
+    // 実データが取得できない場合はモックデータを使用
+    if (results.length === 0) {
+      console.warn('⚠️ 実データAPIが利用できません。モックデータを使用します。');
+      return this.getMockFlightData(params);
     }
 
     // 結果をソート（価格順）
@@ -61,7 +63,7 @@ export class FlightAPIAggregator {
       data: results,
       error: errors.length > 0 ? {
         code: 'PARTIAL_FAILURE',
-        message: `Some APIs failed: ${errors.join(', ')}`,
+        message: `一部のAPIでエラーが発生: ${errors.join(', ')}`,
         details: errors
       } : undefined
     };
