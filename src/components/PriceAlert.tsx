@@ -92,7 +92,7 @@ export default function PriceAlert() {
                       {alert.airline}
                     </span>
                     <span className={`px-2 py-1 rounded text-sm ${
-                      alert.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                      alert.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                     }`}>
                       {alert.isActive ? '有効' : '無効'}
                     </span>

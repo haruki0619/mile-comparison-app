@@ -25,6 +25,45 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* 包括的な文字色設定（視認性向上） */
+.text-gray-600 {
+  color: #4b5563 !important; /* より濃いグレー */
+}
+
+/* 検索結果とキャプション用の改善された文字色 */
+.search-results p,
+.search-results span,
+.caption-text,
+.description-text {
+  color: #374151 !important; /* gray-700 - より読みやすい */
+}
+
+/* ステータス表示の文字色強化 */
+.status-text {
+  color: #111827 !important; /* gray-900 */
+}
+
+/* ボタンとリンクのコントラスト強化 */
+button[disabled],
+.disabled-text {
+  color: #6b7280 !important; /* gray-500 - 無効状態でも読める */
+}
+
+/* アクセシビリティ準拠の最小コントラスト比確保 */
+.accessible-text {
+  color: #111827 !important; /* gray-900 - WCAG AA準拠 */
+}
+
+/* ヘッダー・フッター・ナビゲーション */
+header, footer, nav {
+  color: #111827 !important;
+}
+
+header p, footer p, nav p,
+header span, footer span, nav span {
+  color: #374151 !important; /* gray-700 */
+}
+
 /* フォーム要素の文字色を強化 */
 input, select, textarea {
   color: #111827 !important; /* gray-900 */
