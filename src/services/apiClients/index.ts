@@ -9,6 +9,8 @@ export class FlightAPIAggregator {
   constructor() {
     // 環境変数からAPIキーを取得
     const rakutenAppId = process.env.NEXT_PUBLIC_RAKUTEN_APP_ID;
+    const rakutenSecret = process.env.NEXT_PUBLIC_RAKUTEN_APPLICATION_SECRET;
+    const rakutenAffiliateId = process.env.NEXT_PUBLIC_RAKUTEN_AFFILIATE_ID;
 
     // Skyscanner APIは商用利用のみのため一時的に無効化
     // const skyscannerKey = process.env.NEXT_PUBLIC_SKYSCANNER_API_KEY;
@@ -16,11 +18,11 @@ export class FlightAPIAggregator {
     //   this.skyscannerClient = new SkyscannerClient(skyscannerKey);
     // }
 
-    if (rakutenAppId) {
-      this.rakutenClient = new RakutenTravelClient(rakutenAppId);
+    if (rakutenAppId && rakutenSecret && rakutenAffiliateId) {
+      this.rakutenClient = new RakutenTravelClient(rakutenAppId, rakutenSecret, rakutenAffiliateId);
       console.log('✅ 楽天トラベルAPIクライアント初期化完了');
     } else {
-      console.warn('⚠️ 楽天トラベルAPIキーが設定されていません。モックデータを使用します。');
+      console.warn('⚠️ 楽天トラベルAPI認証情報が不完全です。モックデータを使用します。');
     }
   }
 

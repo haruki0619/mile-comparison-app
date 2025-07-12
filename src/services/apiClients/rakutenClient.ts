@@ -2,10 +2,14 @@ import { APIResponse, FlightSearchParams, UnifiedFlightOffer, RakutenTravelRespo
 
 export class RakutenTravelClient {
   private appId: string;
+  private applicationSecret: string;
+  private affiliateId: string;
   private baseUrl = 'https://app.rakuten.co.jp/services/api/Travel';
 
-  constructor(appId: string) {
+  constructor(appId: string, applicationSecret: string, affiliateId: string) {
     this.appId = appId;
+    this.applicationSecret = applicationSecret;
+    this.affiliateId = affiliateId;
   }
 
   async searchDomesticFlights(params: FlightSearchParams): Promise<APIResponse<UnifiedFlightOffer[]>> {
@@ -14,6 +18,8 @@ export class RakutenTravelClient {
       // 航空券単体のAPIは限定的なため、シンプルな検索を実装
       const searchParams = new URLSearchParams({
         applicationId: this.appId,
+        applicationSecret: this.applicationSecret,
+        affiliateId: this.affiliateId,
         format: 'json',
         departure: this.getAirportName(params.departure),
         arrival: this.getAirportName(params.arrival),

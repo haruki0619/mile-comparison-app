@@ -10,19 +10,19 @@ export class SkyscannerClient {
 
   async searchFlights(params: FlightSearchParams): Promise<APIResponse<UnifiedFlightOffer[]>> {
     try {
-      // Phase 1: セッション作成
+      // フェーズ1: セッション作成
       const sessionResponse = await this.createSearchSession(params);
       if (!sessionResponse.success || !sessionResponse.data) {
         return {
           success: false,
           error: sessionResponse.error || {
             code: 'SKYSCANNER_SESSION_ERROR',
-            message: 'Failed to create search session'
+            message: 'セッション作成に失敗しました'
           }
         };
       }
 
-      // Phase 2: 結果ポーリング
+      // フェーズ2: 結果ポーリング
       const results = await this.pollSearchResults(sessionResponse.data.sessionToken);
       return results;
     } catch (error) {
@@ -30,7 +30,7 @@ export class SkyscannerClient {
         success: false,
         error: {
           code: 'SKYSCANNER_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error',
+          message: error instanceof Error ? error.message : '不明なエラー',
           details: error
         }
       };
@@ -76,7 +76,7 @@ export class SkyscannerClient {
 
     const sessionToken = response.headers.get('x-session-id');
     if (!sessionToken) {
-      throw new Error('Session token not found in response');
+      throw new Error('レスポンスにセッショントークンが見つかりません');
     }
 
     return {
@@ -87,7 +87,7 @@ export class SkyscannerClient {
 
   private async pollSearchResults(sessionToken: string): Promise<APIResponse<UnifiedFlightOffer[]>> {
     const maxAttempts = 10;
-    const pollInterval = 1000; // 1秒
+    const pollInterval = 1000; // 1秒間隔
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const response = await fetch(`${this.baseUrl}/v3/flights/live/search/poll/${sessionToken}`, {
@@ -118,7 +118,7 @@ export class SkyscannerClient {
       await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
 
-    throw new Error('Search timed out after maximum attempts');
+    throw new Error('最大試行回数を超えて検索がタイムアウトしました');
   }
 
   private transformToUnifiedFormat(data: SkyscannerResponse): UnifiedFlightOffer[] {
@@ -126,7 +126,7 @@ export class SkyscannerClient {
       id: itinerary.id,
       source: 'skyscanner' as const,
       route: {
-        departure: 'TBD', // 実際のレスポンス構造に応じて実装
+        departure: 'TBD', // 実際のレスポンス構造に応じて実装予定
         arrival: 'TBD',
         departureTime: 'TBD',
         arrivalTime: 'TBD'
@@ -134,15 +134,15 @@ export class SkyscannerClient {
       pricing: {
         currency: 'JPY',
         totalPrice: parseInt(itinerary.pricingOptions[0]?.price.amount || '0'),
-        basePrice: 0, // 計算必要
-        taxes: 0 // 計算必要
+        basePrice: 0, // 計算が必要
+        taxes: 0 // 計算が必要
       },
       airline: {
         code: 'TBD',
         name: 'TBD'
       },
       availability: {
-        seats: 999, // スカイスキャナーでは通常提供されない
+        seats: 999, // スカイスキャナーでは通常提供されない情報
         bookingClass: 'Y'
       }
     }));
