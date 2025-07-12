@@ -48,7 +48,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
             <select
               value={departure}
               onChange={(e) => setDeparture(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               required
               disabled={isLoading}
             >
@@ -68,7 +68,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
             <select
               value={arrival}
               onChange={(e) => setArrival(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               required
               disabled={isLoading}
             >
@@ -93,7 +93,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
               value={date}
               onChange={(e) => setDate(e.target.value)}
               min={getTodayString()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               required
               disabled={isLoading}
             />
@@ -106,7 +106,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
             <select
               value={passengers}
               onChange={(e) => setPassengers(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               disabled={isLoading}
             >
               {PASSENGER_OPTIONS.map((num) => (

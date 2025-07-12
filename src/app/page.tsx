@@ -71,7 +71,7 @@ export default function Home() {
                 <div className="bg-white rounded-xl shadow-lg p-8">
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                    <span className="text-gray-600">検索中...</span>
+                    <span className="text-gray-800">検索中...</span>
                   </div>
                 </div>
               </div>
@@ -109,7 +109,7 @@ export default function Home() {
                     航空券・マイル検索を始めましょう
                   </h2>
                   
-                  <p className="text-gray-600 mb-6">
+                  <p className="text-gray-800 mb-6">
                     出発地・到着地・搭乗日を選択して、ANA・JAL・ソラシドエアの
                     マイル要件と現金価格を一括比較できます。
                   </p>
@@ -120,7 +120,7 @@ export default function Home() {
                         <span className="text-green-600 font-bold">1</span>
                       </div>
                       <h3 className="font-semibold text-gray-800">検索</h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-800">
                         出発地・到着地・日程を入力
                       </p>
                     </div>
@@ -130,7 +130,7 @@ export default function Home() {
                         <span className="text-blue-600 font-bold">2</span>
                       </div>
                       <h3 className="font-semibold text-gray-800">比較</h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-800">
                         各社のマイル・価格を比較
                       </p>
                     </div>
@@ -140,7 +140,7 @@ export default function Home() {
                         <span className="text-purple-600 font-bold">3</span>
                       </div>
                       <h3 className="font-semibold text-gray-800">予約</h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-800">
                         最適な選択肢で予約
                       </p>
                     </div>

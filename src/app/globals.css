@@ -25,6 +25,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* フォーム要素の文字色を強化 */
+input, select, textarea {
+  color: #111827 !important; /* gray-900 */
+}
+
 /* optgroup styling for better visibility */
 optgroup {
   font-weight: bold;
