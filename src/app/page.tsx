@@ -28,8 +28,9 @@ export default function Home() {
   // 検索条件の永続化
   const [lastSearchForm, setLastSearchForm] = useState<SearchFormType | null>(null);
   
-  // アラート登録用の選択されたオファー
+  // アラート登録用の選択されたオファー（ポップアップ制御用）
   const [selectedOfferForAlert, setSelectedOfferForAlert] = useState<any>(null);
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
 
   const handleSearch = async (form: SearchFormType) => {
     console.log('🔍 Search initiated:', form);
@@ -62,17 +63,29 @@ export default function Home() {
     }
   };
 
-  // アラート登録ハンドラー
+  // アラート登録ハンドラー（ポップアップ形式）
   const handleCreateAlert = (offer: any) => {
     setSelectedOfferForAlert(offer);
-    setActiveTab('alerts');
+    setIsAlertModalOpen(true);
   };
 
-  // カレンダーページへの便利な遷移
-  const handleViewCalendar = () => {
-    if (lastSearchForm) {
-      setActiveTab('calendar');
+  // アラートモーダルを閉じる
+  const handleCloseAlertModal = () => {
+    setIsAlertModalOpen(false);
+    setSelectedOfferForAlert(null);
+  };
+
+  // カレンダーページへの便利な遷移（検索日付付き）
+  const handleViewCalendar = (searchDate?: string) => {
+    let targetDate: Date | undefined;
+    
+    if (searchDate) {
+      targetDate = new Date(searchDate);
+    } else if (lastSearchForm?.date) {
+      targetDate = new Date(lastSearchForm.date);
     }
+    
+    setActiveTab('calendar');
   };
 
   const renderTabContent = () => {
@@ -174,6 +187,7 @@ export default function Home() {
         );
 
       case 'calendar':
+        const targetDate = lastSearchForm?.date ? new Date(lastSearchForm.date) : undefined;
         return (
           <PriceCalendar 
             departure={lastSearchForm?.departure || searchResult?.route.departure || 'HND'}
@@ -181,11 +195,12 @@ export default function Home() {
             onDateSelect={handleDateSelect}
             lastSearchDate={lastSearchForm?.date}
             searchRoute={lastSearchForm ? { departure: lastSearchForm.departure, arrival: lastSearchForm.arrival } : undefined}
+            targetDate={targetDate}
           />
         );
 
       case 'alerts':
-        return <PriceAlert prefilledOffer={selectedOfferForAlert} />;
+        return <PriceAlert />;
 
       case 'calculator':
         return (
@@ -210,6 +225,15 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderTabContent()}
       </main>
+
+      {/* アラートモーダル（ポップアップ） */}
+      {isAlertModalOpen && (
+        <PriceAlert 
+          prefilledOffer={selectedOfferForAlert}
+          isModalOpen={isAlertModalOpen}
+          onClose={handleCloseAlertModal}
+        />
+      )}
 
       <Footer />
       

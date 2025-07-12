@@ -19,6 +19,7 @@ interface PriceCalendarProps {
   onDateSelect: (date: Date) => void;
   lastSearchDate?: string; // 最後に検索した日付をハイライト
   searchRoute?: { departure: string; arrival: string }; // 検索中のルート
+  targetDate?: Date; // 表示対象の日付（年月指定用）
 }
 
 export default function PriceCalendar({ 
@@ -26,9 +27,10 @@ export default function PriceCalendar({
   arrival, 
   onDateSelect, 
   lastSearchDate,
-  searchRoute 
+  searchRoute,
+  targetDate 
 }: PriceCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(targetDate || new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // 仮のデータ生成（実際は API から取得）

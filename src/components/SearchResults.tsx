@@ -17,7 +17,7 @@ import {
 interface SearchResultsProps {
   result: SearchResult;
   onCreateAlert?: (offer: any) => void;
-  onViewCalendar?: () => void;
+  onViewCalendar?: (searchDate?: string) => void;
 }
 
 export default function SearchResults({ result, onCreateAlert, onViewCalendar }: SearchResultsProps) {
@@ -91,7 +91,7 @@ export default function SearchResults({ result, onCreateAlert, onViewCalendar }:
           <div className="flex items-center gap-2">
             {onViewCalendar && (
               <button
-                onClick={onViewCalendar}
+                onClick={() => onViewCalendar(result.date)}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
               >
                 <Calendar className="w-4 h-4" />
