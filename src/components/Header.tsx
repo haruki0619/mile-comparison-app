@@ -1,6 +1,6 @@
 'use client';
 
-import { Plane, Award } from 'lucide-react';
+import { Compass, Award } from 'lucide-react';
 
 export default function Header() {
   return (
@@ -9,14 +9,14 @@ export default function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-blue-600 p-2 rounded-lg">
-              <Plane className="h-8 w-8 text-white" />
+              <Compass className="h-8 w-8 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                マイル比較アプリ
+                マイルコンパス
               </h1>
               <p className="text-sm text-gray-600">
-                日本国内線のマイル・運賃を簡単比較 + 便利ツール
+                航空マイル比較・最適化ナビゲーション
               </p>
             </div>
           </div>

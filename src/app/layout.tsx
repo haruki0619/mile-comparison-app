@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "マイル比較アプリ | 日本国内線のマイル・運賃を簡単比較",
-  description: "ANA・JAL・ソラシドエアの国内線特典航空券の必要マイル数と現金価格を一括比較。搭乗日を入力するだけで、各航空会社のマイル要件とお得度が一目でわかります。",
+  title: "マイルコンパス | 航空マイル比較・最適化ナビゲーション",
+  description: "ANA・JAL・ソラシドエアの国内線マイル・運賃を賢く比較。最適な航空券選びをナビゲートする、マイル活用の羅針盤アプリです。",
 };
 
 export default function RootLayout({
