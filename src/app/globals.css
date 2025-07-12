@@ -25,6 +25,46 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* 強制的な文字色適用（最優先） */
+* {
+  color: inherit !important;
+}
+
+body * {
+  color: #111827 !important; /* 全体のベースカラーを濃く */
+}
+
+/* 具体的な要素に対する強制適用 */
+p, span, div, label, h1, h2, h3, h4, h5, h6 {
+  color: #111827 !important;
+}
+
+/* フォーム要素の強制適用 */
+input, select, textarea, option {
+  color: #111827 !important;
+  font-weight: 500;
+}
+
+/* Tailwind CSSのtext-gray-*クラスをすべて上書き */
+.text-gray-100 { color: #f3f4f6 !important; }
+.text-gray-200 { color: #e5e7eb !important; }
+.text-gray-300 { color: #d1d5db !important; }
+.text-gray-400 { color: #9ca3af !important; }
+.text-gray-500 { color: #6b7280 !important; }
+.text-gray-600 { color: #111827 !important; } /* 強制的に濃く */
+.text-gray-700 { color: #111827 !important; } /* より濃く */
+.text-gray-800 { color: #111827 !important; }
+.text-gray-900 { color: #111827 !important; }
+
+/* 特定コンポーネントの文字色強制 */
+.search-form * {
+  color: #111827 !important;
+}
+
+.search-results * {
+  color: #111827 !important;
+}
+
 /* 包括的な文字色設定（視認性向上） */
 .text-gray-600 {
   color: #4b5563 !important; /* より濃いグレー */
@@ -124,3 +164,6 @@ select::-webkit-scrollbar-thumb {
 select::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* キャッシュクリア用のコメント更新 */
+/* 文字色修正 v2.0 - 2025-07-12 */

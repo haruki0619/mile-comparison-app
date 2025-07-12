@@ -32,8 +32,8 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-      <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+    <div className="bg-white rounded-xl shadow-lg p-6 mb-6 search-form">
+      <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2" style={{color: '#111827 !important'}}>
         <Search className="h-5 w-5" />
         航空券・マイル検索
       </h2>
@@ -42,13 +42,14 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
         {/* 出発地・到着地 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2" style={{color: '#111827 !important'}}>
               出発地
             </label>
             <select
               value={departure}
               onChange={(e) => setDeparture(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              style={{color: '#111827 !important'}}
               required
               disabled={isLoading}
             >
@@ -62,13 +63,14 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2" style={{color: '#111827 !important'}}>
               到着地
             </label>
             <select
               value={arrival}
               onChange={(e) => setArrival(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              style={{color: '#111827 !important'}}
               required
               disabled={isLoading}
             >
@@ -85,7 +87,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
         {/* 搭乗日・人数 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2" style={{color: '#111827 !important'}}>
               搭乗日
             </label>
             <input
@@ -94,19 +96,21 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
               onChange={(e) => setDate(e.target.value)}
               min={getTodayString()}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              style={{color: '#111827 !important'}}
               required
               disabled={isLoading}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2" style={{color: '#111827 !important'}}>
               人数
             </label>
             <select
               value={passengers}
               onChange={(e) => setPassengers(Number(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              style={{color: '#111827 !important'}}
               disabled={isLoading}
             >
               {PASSENGER_OPTIONS.map((num) => (
