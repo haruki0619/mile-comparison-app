@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Mail, Trash2, Plus } from 'lucide-react';
 
 interface PriceAlert {
@@ -15,16 +15,33 @@ interface PriceAlert {
   createdAt: Date;
 }
 
-export default function PriceAlert() {
+interface PriceAlertProps {
+  prefilledOffer?: {
+    airline: string;
+    route: { departure: string; arrival: string };
+    date: string;
+    price: number;
+    miles: number;
+  };
+}
+
+export default function PriceAlert({ prefilledOffer }: PriceAlertProps) {
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAlert, setNewAlert] = useState({
-    departure: '',
-    arrival: '',
-    targetMiles: '',
-    airline: '',
+    departure: prefilledOffer?.route.departure || '',
+    arrival: prefilledOffer?.route.arrival || '',
+    targetMiles: prefilledOffer?.miles ? String(Math.floor(prefilledOffer.miles * 0.9)) : '', // 10%安い価格を目標に
+    airline: prefilledOffer?.airline || '',
     email: ''
   });
+
+  // 事前入力されたオファーがある場合、自動でモーダルを開く
+  useEffect(() => {
+    if (prefilledOffer) {
+      setIsModalOpen(true);
+    }
+  }, [prefilledOffer]);
 
   const addAlert = () => {
     if (newAlert.departure && newAlert.arrival && newAlert.targetMiles && newAlert.email) {

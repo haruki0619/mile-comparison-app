@@ -24,11 +24,18 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('search');
+  
+  // 検索条件の永続化
+  const [lastSearchForm, setLastSearchForm] = useState<SearchFormType | null>(null);
+  
+  // アラート登録用の選択されたオファー
+  const [selectedOfferForAlert, setSelectedOfferForAlert] = useState<any>(null);
 
   const handleSearch = async (form: SearchFormType) => {
     console.log('🔍 Search initiated:', form);
     setIsLoading(true);
     setError(null);
+    setLastSearchForm(form); // 検索条件を保存
     
     try {
       console.log('🔍 Calling searchFlights...');
@@ -45,15 +52,26 @@ export default function Home() {
   };
 
   const handleDateSelect = (date: Date) => {
-    if (searchResult) {
+    if (lastSearchForm) {
       const updatedForm = {
-        departure: searchResult.route.departure,
-        arrival: searchResult.route.arrival,
+        ...lastSearchForm,
         date: date.toISOString().split('T')[0],
-        passengers: 1
       };
       handleSearch(updatedForm);
       setActiveTab('search');
+    }
+  };
+
+  // アラート登録ハンドラー
+  const handleCreateAlert = (offer: any) => {
+    setSelectedOfferForAlert(offer);
+    setActiveTab('alerts');
+  };
+
+  // カレンダーページへの便利な遷移
+  const handleViewCalendar = () => {
+    if (lastSearchForm) {
+      setActiveTab('calendar');
     }
   };
 
@@ -94,7 +112,11 @@ export default function Home() {
 
             {/* 検索結果 */}
             {searchResult && !isLoading && (
-              <SearchResults result={searchResult} />
+              <SearchResults 
+                result={searchResult} 
+                onCreateAlert={handleCreateAlert}
+                onViewCalendar={handleViewCalendar}
+              />
             )}
 
             {/* 初期状態のヘルプ */}
@@ -154,14 +176,16 @@ export default function Home() {
       case 'calendar':
         return (
           <PriceCalendar 
-            departure={searchResult?.route.departure || 'HND'}
-            arrival={searchResult?.route.arrival || 'CTS'}
+            departure={lastSearchForm?.departure || searchResult?.route.departure || 'HND'}
+            arrival={lastSearchForm?.arrival || searchResult?.route.arrival || 'CTS'}
             onDateSelect={handleDateSelect}
+            lastSearchDate={lastSearchForm?.date}
+            searchRoute={lastSearchForm ? { departure: lastSearchForm.departure, arrival: lastSearchForm.arrival } : undefined}
           />
         );
 
       case 'alerts':
-        return <PriceAlert />;
+        return <PriceAlert prefilledOffer={selectedOfferForAlert} />;
 
       case 'calculator':
         return (

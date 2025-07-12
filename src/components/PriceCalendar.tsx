@@ -17,9 +17,17 @@ interface PriceCalendarProps {
   departure: string;
   arrival: string;
   onDateSelect: (date: Date) => void;
+  lastSearchDate?: string; // 最後に検索した日付をハイライト
+  searchRoute?: { departure: string; arrival: string }; // 検索中のルート
 }
 
-export default function PriceCalendar({ departure, arrival, onDateSelect }: PriceCalendarProps) {
+export default function PriceCalendar({ 
+  departure, 
+  arrival, 
+  onDateSelect, 
+  lastSearchDate,
+  searchRoute 
+}: PriceCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -75,10 +83,17 @@ export default function PriceCalendar({ departure, arrival, onDateSelect }: Pric
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <Calendar className="w-6 h-6 text-blue-600" />
-          価格カレンダー
-        </h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-blue-600" />
+            価格カレンダー
+          </h2>
+          {searchRoute && (
+            <p className="text-gray-700 mt-1">
+              {searchRoute.departure} → {searchRoute.arrival}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-4">
           <button
             onClick={previousMonth}
@@ -115,18 +130,26 @@ export default function PriceCalendar({ departure, arrival, onDateSelect }: Pric
 
       {/* カレンダーグリッド */}
       <div className="grid grid-cols-7 gap-2">
-        {prices.map(price => (
-          <div
-            key={price.date.toISOString()}
-            onClick={() => handleDateClick(price)}
-            className={`
-              relative p-2 border-2 rounded-lg cursor-pointer transition-all hover:scale-105
-              ${getPriceColor(price.anaMiles)}
-              ${selectedDate && isSameDay(selectedDate, price.date) ? 'ring-2 ring-blue-500' : ''}
-              ${price.date < new Date() ? 'opacity-50 cursor-not-allowed' : ''}
-            `}
-          >
-            <div className="text-center">
+        {prices.map(price => {
+          const isLastSearched = lastSearchDate && isSameDay(price.date, new Date(lastSearchDate));
+          return (
+            <div
+              key={price.date.toISOString()}
+              onClick={() => handleDateClick(price)}
+              className={`
+                relative p-2 border-2 rounded-lg cursor-pointer transition-all hover:scale-105
+                ${getPriceColor(price.anaMiles)}
+                ${selectedDate && isSameDay(selectedDate, price.date) ? 'ring-2 ring-blue-500' : ''}
+                ${isLastSearched ? 'ring-2 ring-green-500 bg-green-50' : ''}
+                ${price.date < new Date() ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              {isLastSearched && (
+                <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  ✓
+                </div>
+              )}
+              <div className="text-center">
               <div className="text-sm font-semibold">
                 {format(price.date, 'd')}
               </div>
@@ -145,7 +168,7 @@ export default function PriceCalendar({ departure, arrival, onDateSelect }: Pric
               </div>
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       {/* 凡例 */}

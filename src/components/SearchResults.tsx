@@ -16,9 +16,11 @@ import {
 
 interface SearchResultsProps {
   result: SearchResult;
+  onCreateAlert?: (offer: any) => void;
+  onViewCalendar?: () => void;
 }
 
-export default function SearchResults({ result }: SearchResultsProps) {
+export default function SearchResults({ result, onCreateAlert, onViewCalendar }: SearchResultsProps) {
   console.log('🎯 SearchResults component rendered with:', result);
   
   const [selectedAirline, setSelectedAirline] = useState<string | null>(null);
@@ -86,9 +88,20 @@ export default function SearchResults({ result }: SearchResultsProps) {
             <Plane className="w-6 h-6 text-blue-600" />
             検索結果
           </h2>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSeasonColor(result.season)}`}>
-            {getSeasonLabel(result.season)}シーズン
-          </span>
+          <div className="flex items-center gap-2">
+            {onViewCalendar && (
+              <button
+                onClick={onViewCalendar}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                カレンダー表示
+              </button>
+            )}
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSeasonColor(result.season)}`}>
+              {getSeasonLabel(result.season)}シーズン
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-4 text-lg">
@@ -217,6 +230,23 @@ export default function SearchResults({ result }: SearchResultsProps) {
                     <Info className="w-4 h-4" />
                     詳細情報
                   </button>
+
+                  {/* アラート作成ボタン */}
+                  {onCreateAlert && (
+                    <button
+                      onClick={() => onCreateAlert({
+                        airline: airlineInfo.airline,
+                        route: result.route,
+                        date: result.date,
+                        price: airlineInfo.cashPrice,
+                        miles: airlineInfo.miles[result.season]
+                      })}
+                      className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      価格アラート設定
+                    </button>
+                  )}
                   
                   <a
                     href={`https://www.${airlineInfo.airline.toLowerCase()}.co.jp`}
