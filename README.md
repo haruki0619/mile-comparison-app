@@ -19,8 +19,8 @@
 - **Lucide React** for icons
 
 ### バックエンド統合
-- **Skyscanner API** - 包括的な航空券データ
-- **楽天トラベルAPI** - 国内線特化
+- **楽天トラベルAPI** - 国内線特化（優先実装）
+- **Skyscanner API** - 包括的な航空券データ（商用利用のみ）
 - **Amadeus API** - 企業向け統合（オプション）
 - **予約開始日表示**: 各社の特典航空券予約開始日を表示
 - **ディスカウント情報**: 特別キャンペーンやタイムセール情報
@@ -139,4 +139,6 @@ MIT License
 
 ## 📞 サポート
 
-質問や問題がある場合は、GitHubのIssuesをご利用ください。
+- 🐛 バグ報告: GitHub Issues
+- 💡 機能提案: GitHub Discussions  
+- 📧 直接連絡: [support@mile-app.com](mailto:support@mile-app.com)
