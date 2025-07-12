@@ -1,16 +1,21 @@
 import { SkyscannerClient } from './skyscannerClient';
 import { RakutenTravelClient } from './rakutenClient';
+import { AmadeusClient } from './amadeusClient';
 import { APIResponse, FlightSearchParams, UnifiedFlightOffer } from '../../types/api';
 
 export class FlightAPIAggregator {
   private skyscannerClient?: SkyscannerClient;
   private rakutenClient?: RakutenTravelClient;
+  private amadeusClient?: AmadeusClient;
 
   constructor() {
     // 環境変数からAPIキーを取得
     const rakutenAppId = process.env.NEXT_PUBLIC_RAKUTEN_APP_ID;
     const rakutenSecret = process.env.NEXT_PUBLIC_RAKUTEN_APPLICATION_SECRET;
     const rakutenAffiliateId = process.env.NEXT_PUBLIC_RAKUTEN_AFFILIATE_ID;
+    
+    const amadeusClientId = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_ID;
+    const amadeusClientSecret = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_SECRET;
 
     // Skyscanner APIは商用利用のみのため一時的に無効化
     // const skyscannerKey = process.env.NEXT_PUBLIC_SKYSCANNER_API_KEY;
@@ -23,6 +28,13 @@ export class FlightAPIAggregator {
       console.log('✅ 楽天トラベルAPIクライアント初期化完了');
     } else {
       console.warn('⚠️ 楽天トラベルAPI認証情報が不完全です。モックデータを使用します。');
+    }
+
+    if (amadeusClientId && amadeusClientSecret) {
+      this.amadeusClient = new AmadeusClient(amadeusClientId, amadeusClientSecret);
+      console.log('✅ Amadeus APIクライアント初期化完了');
+    } else {
+      console.warn('⚠️ Amadeus API認証情報が設定されていません。');
     }
   }
 
@@ -43,6 +55,22 @@ export class FlightAPIAggregator {
         }
       } catch (error) {
         errors.push(`楽天トラベルAPI例外: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    // Amadeus APIを使用（国内線・国際線両方対応）
+    if (this.amadeusClient) {
+      console.log('🔍 Amadeus APIで航空券検索中...');
+      try {
+        const amadeusResponse = await this.amadeusClient.searchFlights(params);
+        if (amadeusResponse.success && amadeusResponse.data) {
+          results.push(...amadeusResponse.data);
+          console.log(`✅ Amadeus API: ${amadeusResponse.data.length}件の結果を取得`);
+        } else if (amadeusResponse.error) {
+          errors.push(`Amadeus API: ${amadeusResponse.error.message}`);
+        }
+      } catch (error) {
+        errors.push(`Amadeus API例外: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
