@@ -13,7 +13,13 @@ export class SkyscannerClient {
       // Phase 1: セッション作成
       const sessionResponse = await this.createSearchSession(params);
       if (!sessionResponse.success || !sessionResponse.data) {
-        return sessionResponse as APIResponse<UnifiedFlightOffer[]>;
+        return {
+          success: false,
+          error: sessionResponse.error || {
+            code: 'SKYSCANNER_SESSION_ERROR',
+            message: 'Failed to create search session'
+          }
+        };
       }
 
       // Phase 2: 結果ポーリング
