@@ -95,11 +95,11 @@ export default function SearchResults({ result }: SearchResultsProps) {
           <div className="font-semibold">
             {departureAirport?.city} ({result.route.departure})
           </div>
-          <div className="text-gray-400">→</div>
+          <div className="text-gray-700">→</div>
           <div className="font-semibold">
             {arrivalAirport?.city} ({result.route.arrival})
           </div>
-          <div className="text-gray-500 text-sm">
+          <div className="text-gray-700 text-sm">
             | {formatDate(result.date)} | {result.route.distance}km
           </div>
         </div>
@@ -133,14 +133,14 @@ export default function SearchResults({ result }: SearchResultsProps) {
                 {/* マイル情報 */}
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 flex items-center gap-1">
+                    <span className="text-gray-800 flex items-center gap-1">
                       <Award className="w-4 h-4" />
                       必要マイル
                     </span>
                     <div className="text-right">
                       {airlineInfo.discount ? (
                         <div>
-                          <span className="text-sm text-gray-500 line-through">
+                          <span className="text-sm text-gray-700 line-through">
                             {currentMiles(airlineInfo).toLocaleString()}
                           </span>
                           <div className="text-lg font-bold text-red-600">
@@ -157,7 +157,7 @@ export default function SearchResults({ result }: SearchResultsProps) {
 
                   {airlineInfo.cashPrice && (
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 flex items-center gap-1">
+                      <span className="text-gray-800 flex items-center gap-1">
                         <CreditCard className="w-4 h-4" />
                         現金価格
                       </span>
@@ -169,7 +169,7 @@ export default function SearchResults({ result }: SearchResultsProps) {
 
                   {mileValue > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 text-sm">
+                      <span className="text-gray-800 text-sm">
                         1マイル価値
                       </span>
                       <span className="text-sm font-medium text-green-600">
@@ -181,14 +181,14 @@ export default function SearchResults({ result }: SearchResultsProps) {
 
                 {/* 予約開始日 */}
                 <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                  <div className="flex items-center gap-2 text-sm text-gray-800 mb-1">
                     <Calendar className="w-4 h-4" />
                     予約開始日
                   </div>
                   <div className="font-medium">
                     {formatDate(bookingStartDate)}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-700">
                     ({airlineInfo.bookingStartDays}日前より)
                   </div>
                 </div>

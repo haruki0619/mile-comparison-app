@@ -73,7 +73,7 @@ export default function PriceAlert() {
       </div>
 
       {alerts.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-gray-700">
           <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300" />
           <p>設定されたアラートはありません</p>
           <p className="text-sm">価格が下がったときに通知を受け取りましょう</p>
@@ -97,7 +97,7 @@ export default function PriceAlert() {
                       {alert.isActive ? '有効' : '無効'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-6 text-sm text-gray-600">
+                  <div className="flex items-center gap-6 text-sm text-gray-800">
                     <span>目標: {alert.targetMiles.toLocaleString()}マイル</span>
                     <span>現在: {alert.currentMiles.toLocaleString()}マイル</span>
                     <span className="flex items-center gap-1">
@@ -113,7 +113,7 @@ export default function PriceAlert() {
                           style={{ width: `${Math.min((alert.targetMiles / alert.currentMiles) * 100, 100)}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-800">
                         {alert.currentMiles <= alert.targetMiles ? '目標達成!' : 
                           `あと${(alert.currentMiles - alert.targetMiles).toLocaleString()}マイル`}
                       </span>

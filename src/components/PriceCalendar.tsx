@@ -99,7 +99,7 @@ export default function PriceCalendar({ departure, arrival, onDateSelect }: Pric
       </div>
 
       {departure && arrival && (
-        <div className="mb-4 text-center text-gray-600">
+        <div className="mb-4 text-center text-gray-800">
           {departure} → {arrival} の価格推移
         </div>
       )}
@@ -107,7 +107,7 @@ export default function PriceCalendar({ departure, arrival, onDateSelect }: Pric
       {/* 曜日ヘッダー */}
       <div className="grid grid-cols-7 gap-2 mb-2">
         {['日', '月', '火', '水', '木', '金', '土'].map(day => (
-          <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+          <div key={day} className="text-center text-sm font-medium text-gray-700 py-2">
             {day}
           </div>
         ))}
@@ -178,25 +178,25 @@ export default function PriceCalendar({ departure, arrival, onDateSelect }: Pric
               return (
                 <>
                   <div className="text-center">
-                    <div className="text-sm text-gray-600">ANA</div>
+                    <div className="text-sm text-gray-800">ANA</div>
                     <div className="text-lg font-semibold text-blue-600">
                       {price.anaMiles.toLocaleString()}マイル
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-sm text-gray-600">JAL</div>
+                    <div className="text-sm text-gray-800">JAL</div>
                     <div className="text-lg font-semibold text-red-600">
                       {price.jalMiles.toLocaleString()}マイル
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-sm text-gray-600">ソラシド</div>
+                    <div className="text-sm text-gray-800">ソラシド</div>
                     <div className="text-lg font-semibold text-green-600">
                       {price.solaseedMiles.toLocaleString()}マイル
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-sm text-gray-600">現金価格</div>
+                    <div className="text-sm text-gray-800">現金価格</div>
                     <div className="text-lg font-semibold text-gray-800">
                       ¥{price.cashPrice.toLocaleString()}
                     </div>

@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="bg-white border-t mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center text-gray-600">
+        <div className="text-center text-gray-800">
           <p className="mb-2">
             ※ このアプリは参考情報を提供するものです。実際の予約・搭乗の際は必ず各航空会社の公式サイトでご確認ください。
           </p>

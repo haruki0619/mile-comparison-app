@@ -15,13 +15,13 @@ export default function Header() {
               <h1 className="text-2xl font-bold text-gray-900">
                 マイルコンパス
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-800">
                 航空マイル比較・最適化ナビゲーション
               </p>
             </div>
           </div>
           
-          <div className="hidden sm:flex items-center space-x-6 text-sm text-gray-600">
+          <div className="hidden sm:flex items-center space-x-6 text-sm text-gray-800">
             <div className="flex items-center space-x-1">
               <Award className="h-4 w-4" />
               <span>ANA・JAL・ソラシドエア対応</span>

@@ -42,7 +42,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
         {/* 出発地・到着地 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               出発地
             </label>
             <select
@@ -62,7 +62,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               到着地
             </label>
             <select
@@ -85,7 +85,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
         {/* 搭乗日・人数 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               搭乗日
             </label>
             <input
@@ -100,7 +100,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               人数
             </label>
             <select

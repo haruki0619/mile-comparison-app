@@ -165,21 +165,21 @@ export default function ValueCalculator({ departure, arrival, cashPrice }: Value
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <div className="text-sm text-gray-600">必要ポイント/マイル</div>
+                <div className="text-sm text-gray-800">必要ポイント/マイル</div>
                 <div className="text-xl font-bold">{value.pointsRequired.toLocaleString()}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">1ポイント/マイルの価値</div>
+                <div className="text-sm text-gray-800">1ポイント/マイルの価値</div>
                 <div className="text-xl font-bold">¥{value.valuePerPoint.toFixed(2)}</div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">節約額</div>
+                <div className="text-sm text-gray-800">節約額</div>
                 <div className={`text-xl font-bold ${value.savings > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {value.savings > 0 ? '+' : ''}¥{Math.round(value.savings).toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-600">節約率</div>
+                <div className="text-sm text-gray-800">節約率</div>
                 <div className={`text-xl font-bold ${value.savings > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {((value.savings / cashPrice) * 100).toFixed(1)}%
                 </div>
@@ -188,7 +188,7 @@ export default function ValueCalculator({ departure, arrival, cashPrice }: Value
 
             {/* プログレスバー */}
             <div className="mt-3">
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <div className="flex justify-between text-sm text-gray-800 mb-1">
                 <span>価値効率</span>
                 <span>{((value.valuePerPoint / bestValue.valuePerPoint) * 100).toFixed(0)}%</span>
               </div>
