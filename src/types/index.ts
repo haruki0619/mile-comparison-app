@@ -6,6 +6,7 @@ export interface Airport {
   code: string;
   name: string;
   city: string;
+  region?: string; // 地域分類（関東、関西、北海道など）
 }
 
 // 路線情報

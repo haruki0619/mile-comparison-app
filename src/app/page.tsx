@@ -9,6 +9,7 @@ import TabNavigation from '../components/TabNavigation';
 import Footer from '../components/Footer';
 import DebugPanel from '../components/DebugPanel';
 import SearchForm from '../components/SearchForm';
+import EnhancedSearchForm from '../components/EnhancedSearchForm';
 import SearchResults from '../components/SearchResults';
 import PriceCalendar from '../components/PriceCalendar';
 import PriceAlert from '../components/PriceAlert';
@@ -94,7 +95,7 @@ export default function Home() {
         return (
           <>
             {/* 検索フォーム */}
-            <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+            <EnhancedSearchForm onSearch={handleSearch} isLoading={isLoading} />
 
             {/* ローディング */}
             {isLoading && (

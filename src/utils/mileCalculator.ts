@@ -4,7 +4,7 @@ import {
   AirlineMileInfo, 
   Airline, 
   Route 
-} from '../types';
+} from '../types/index';
 import { 
   airports, 
   routes, 

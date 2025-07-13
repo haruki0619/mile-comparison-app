@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Plane, Calendar, Users, ArrowRight, MapPin } from 'lucide-react';
 import { SearchForm as SearchFormType } from '../types';
-import { AIRPORTS, PASSENGER_OPTIONS } from '../constants';
+import { AIRPORTS } from '../constants';
 import { getTodayString, validateSearchForm } from '../utils';
+
+// 人数オプション
+const PASSENGER_OPTIONS = [1, 2, 3, 4, 5, 6];
 
 interface SearchFormProps {
   onSearch: (data: SearchFormType) => void;
@@ -16,6 +19,48 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
   const [arrival, setArrival] = useState('');
   const [date, setDate] = useState('');
   const [passengers, setPassengers] = useState(1);
+
+  // 地域別空港グループ化
+  const airportsByRegion = useMemo(() => {
+    const grouped = AIRPORTS.reduce((acc, airport) => {
+      const region = airport.region || 'その他';
+      if (!acc[region]) acc[region] = [];
+      acc[region].push(airport);
+      return acc;
+    }, {} as Record<string, typeof AIRPORTS>);
+
+    // 地域の順序を定義
+    const regionOrder = ['関東', '関西', '中部', '北海道', '東北', '中国', '四国', '九州', '沖縄', 'アジア', '北米', 'ヨーロッパ', 'オセアニア', 'その他'];
+    
+    const orderedGrouped: Record<string, typeof AIRPORTS> = {};
+    regionOrder.forEach(region => {
+      if (grouped[region]) {
+        orderedGrouped[region] = grouped[region];
+      }
+    });
+
+    return orderedGrouped;
+  }, []);
+
+  const renderAirportSelect = (value: string, onChange: (value: string) => void, placeholder: string) => (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+      required
+    >
+      <option value="">{placeholder}</option>
+      {Object.entries(airportsByRegion).map(([region, airports]) => (
+        <optgroup key={region} label={`🌏 ${region}`}>
+          {airports.map(airport => (
+            <option key={airport.code} value={airport.code}>
+              {airport.city} - {airport.name} ({airport.code})
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,116 +76,142 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
     onSearch(form);
   };
 
+  // Quick preset buttons
+  const popularRoutes = [
+    { from: 'NRT', to: 'HNL', label: '東京→ホノルル' },
+    { from: 'NRT', to: 'LAX', label: '東京→ロサンゼルス' },
+    { from: 'KIX', to: 'ICN', label: '大阪→ソウル' },
+    { from: 'NRT', to: 'CDG', label: '東京→パリ' }
+  ];
+
+  const setQuickRoute = (from: string, to: string) => {
+    setDeparture(from);
+    setArrival(to);
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 mb-6 search-form">
-      <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2" style={{color: '#111827 !important'}}>
-        <Search className="h-5 w-5" />
-        航空券・マイル検索
-      </h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 出発地・到着地 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2" style={{color: '#111827 !important'}}>
-              出発地
-            </label>
-            <select
-              value={departure}
-              onChange={(e) => setDeparture(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-              style={{color: '#111827 !important'}}
-              required
-              disabled={isLoading}
-            >
-              <option value="">空港を選択してください</option>
-              {AIRPORTS.map((airport) => (
-                <option key={airport.code} value={airport.code}>
-                  {airport.city} - {airport.name} ({airport.code})
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2" style={{color: '#111827 !important'}}>
-              到着地
-            </label>
-            <select
-              value={arrival}
-              onChange={(e) => setArrival(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-              style={{color: '#111827 !important'}}
-              required
-              disabled={isLoading}
-            >
-              <option value="">空港を選択してください</option>
-              {AIRPORTS.map((airport) => (
-                <option key={airport.code} value={airport.code}>
-                  {airport.city} - {airport.name} ({airport.code})
-                </option>
-              ))}
-            </select>
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-3">
+          <Search className="h-6 w-6" />
+          マイル・航空券検索
+        </h2>
+        <p className="text-blue-100 text-sm mt-1">
+          最新のマイル表で最適なルートを見つけましょう
+        </p>
+      </div>
+
+      <div className="p-6">
+        {/* Quick Route Presets */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">人気ルート</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {popularRoutes.map((route, index) => (
+              <button
+                key={index}
+                onClick={() => setQuickRoute(route.from, route.to)}
+                className="p-2 text-xs bg-gray-50 hover:bg-blue-50 hover:text-blue-700 border border-gray-200 rounded-lg transition-colors text-center"
+              >
+                {route.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* 搭乗日・人数 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2" style={{color: '#111827 !important'}}>
-              搭乗日
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              min={getTodayString()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-              style={{color: '#111827 !important'}}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2" style={{color: '#111827 !important'}}>
-              人数
-            </label>
-            <select
-              value={passengers}
-              onChange={(e) => setPassengers(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-              style={{color: '#111827 !important'}}
-              disabled={isLoading}
-            >
-              {PASSENGER_OPTIONS.map((num) => (
-                <option key={num} value={num}>
-                  {num}名
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Route Selection */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              {/* Departure */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="h-4 w-4 inline mr-1" />
+                  出発地
+                </label>
+                {renderAirportSelect(departure, setDeparture, "出発地を選択")}
+              </div>
 
-        {/* 検索ボタン */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
-        >
-          {isLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              検索中...
-            </>
-          ) : (
-            <>
-              <Search className="h-5 w-5" />
-              検索
-            </>
-          )}
-        </button>
-      </form>
+              {/* Arrow */}
+              <div className="flex justify-center items-center">
+                <ArrowRight className="h-5 w-5 text-gray-400" />
+              </div>
+
+              {/* Arrival */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="h-4 w-4 inline mr-1" />
+                  到着地
+                </label>
+                {renderAirportSelect(arrival, setArrival, "到着地を選択")}
+              </div>
+            </div>
+          </div>
+
+          {/* Date & Passengers */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="h-4 w-4 inline mr-1" />
+                出発日
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                min={getTodayString()}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Users className="h-4 w-4 inline mr-1" />
+                人数
+              </label>
+              <select
+                value={passengers}
+                onChange={(e) => setPassengers(parseInt(e.target.value))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+              >
+                {PASSENGER_OPTIONS.map(num => (
+                  <option key={num} value={num}>
+                    {num}名
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Search Button */}
+          <button
+            type="submit"
+            disabled={isLoading || !departure || !arrival || !date}
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center justify-center gap-3"
+          >
+            {isLoading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                検索中...
+              </>
+            ) : (
+              <>
+                <Plane className="h-5 w-5" />
+                マイル・航空券を検索
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* Help Text */}
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+          <p className="text-sm text-blue-700">
+            💡 <strong>検索のコツ:</strong> 
+            人気ルートボタンで素早く入力、出発日を柔軟に設定することで最適なマイル数を見つけられます。
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

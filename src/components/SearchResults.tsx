@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SearchResult, AirlineMileInfo } from '../types';
-import { getAirport, calculateBookingStartDate, calculateMileValue } from '../utils/mileCalculator';
+import { getAirport, calculateBookingStartDate } from '../utils/mileCalculator';
 import { 
   Plane, 
   Calendar, 
@@ -11,7 +11,8 @@ import {
   ExternalLink, 
   Info, 
   TrendingDown,
-  AlertCircle 
+  AlertCircle,
+  Calculator
 } from 'lucide-react';
 
 interface SearchResultsProps {
@@ -24,6 +25,10 @@ export default function SearchResults({ result, onCreateAlert, onViewCalendar }:
   console.log('🎯 SearchResults component rendered with:', result);
   
   const [selectedAirline, setSelectedAirline] = useState<string | null>(null);
+  const [showPatternComparison, setShowPatternComparison] = useState(true);
+  const [showEfficiencyCalculator, setShowEfficiencyCalculator] = useState(false);
+  const [showUpdateAlert, setShowUpdateAlert] = useState(true);
+  const [showDynamicComparison, setShowDynamicComparison] = useState(false);
   
   useEffect(() => {
     console.log('🎯 SearchResults useEffect - result changed:', result);
@@ -75,280 +80,299 @@ export default function SearchResults({ result, onCreateAlert, onViewCalendar }:
     }
   };
 
+  // 現在のシーズンのマイル数を取得
   const currentMiles = (airlineInfo: AirlineMileInfo) => {
     return airlineInfo.miles[result.season];
   };
 
+  // マイル価値を計算（簡易版）
+  const getMileValue = (miles: number) => {
+    return miles * 2; // 1マイル = 2円として計算
+  };
+
   return (
-    <div className="space-y-6">
-      {/* 路線情報ヘッダー */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <Plane className="w-6 h-6 text-blue-600" />
+    <div className="space-y-8">
+      {/* 検索結果ヘッダー */}
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        {/* Main Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-3">
+            <Plane className="w-6 h-6" />
             検索結果
           </h2>
-          <div className="flex items-center gap-2">
-            {onViewCalendar && (
-              <button
-                onClick={() => onViewCalendar(result.date)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Calendar className="w-4 h-4" />
-                カレンダー表示
-              </button>
-            )}
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSeasonColor(result.season)}`}>
-              {getSeasonLabel(result.season)}シーズン
-            </span>
+          <div className="flex items-center gap-4 text-blue-100 text-sm mt-2">
+            <div className="font-medium">
+              {departureAirport?.city} ({result.route.departure})
+            </div>
+            <div className="text-blue-200">→</div>
+            <div className="font-medium">
+              {arrivalAirport?.city} ({result.route.arrival})
+            </div>
+            <div className="text-blue-200">|</div>
+            <div>{formatDate(result.date)}</div>
+            <div className="text-blue-200">|</div>
+            <div>{result.route.distance}km</div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4 text-lg">
-          <div className="font-semibold">
-            {departureAirport?.city} ({result.route.departure})
-          </div>
-          <div className="text-gray-700">→</div>
-          <div className="font-semibold">
-            {arrivalAirport?.city} ({result.route.arrival})
-          </div>
-          <div className="text-gray-700 text-sm">
-            | {formatDate(result.date)} | {result.route.distance}km
+
+        {/* Action Toolbar */}
+        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getSeasonColor(result.season)}`}>
+                {getSeasonLabel(result.season)}シーズン
+              </span>
+              <span className="text-sm text-gray-600">
+                {result.airlines.length}社の航空会社が見つかりました
+              </span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setShowPatternComparison(!showPatternComparison)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  showPatternComparison 
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <TrendingDown className="w-3 h-3 mr-1 inline" />
+                パターン比較
+              </button>
+              
+              <button
+                onClick={() => setShowEfficiencyCalculator(!showEfficiencyCalculator)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  showEfficiencyCalculator 
+                    ? 'bg-green-100 text-green-700 border border-green-200' 
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <Calculator className="w-3 h-3 mr-1 inline" />
+                効率計算
+              </button>
+
+              <button
+                onClick={() => setShowDynamicComparison(!showDynamicComparison)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  showDynamicComparison 
+                    ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <Info className="w-3 h-3 mr-1 inline" />
+                動的比較
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 航空会社比較カード */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {result.airlines.map((airlineInfo) => {
-          const bookingStartDate = calculateBookingStartDate(result.date, airlineInfo.bookingStartDays);
-          const mileValue = calculateMileValue(currentMiles(airlineInfo), airlineInfo.cashPrice || 0);
-          
-          return (
-            <div
-              key={airlineInfo.airline}
-              className={`bg-white rounded-xl shadow-lg border-2 ${getAirlineColor(airlineInfo.airline)} transition-all hover:shadow-xl`}
-            >
-              <div className="p-6">
-                {/* 航空会社名 */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-gray-800">
-                    {airlineInfo.airline}
-                  </h3>
-                  {airlineInfo.discount && (
-                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full flex items-center gap-1">
-                      <TrendingDown className="w-3 h-3" />
-                      特価
+      {/* アップデート通知プレースホルダー */}
+      {showUpdateAlert && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-yellow-800 mb-2">🔔 マイル規約更新通知</h3>
+          <p className="text-yellow-700">マイル規約の変更があった場合、こちらに通知が表示されます。</p>
+          <button 
+            onClick={() => setShowUpdateAlert(false)}
+            className="mt-3 px-4 py-2 bg-yellow-200 text-yellow-800 rounded-lg hover:bg-yellow-300 transition-colors"
+          >
+            閉じる
+          </button>
+        </div>
+      )}
+
+      {/* 動的マイル比較プレースホルダー */}
+      {showDynamicComparison && (
+        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-purple-800 mb-4">⚡ 動的マイル比較</h3>
+          <p className="text-purple-700">リアルタイムでマイル数の変動を追跡し、最適なタイミングを提案します。</p>
+        </div>
+      )}
+
+      {/* マイル効率計算ツールプレースホルダー */}
+      {showEfficiencyCalculator && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-green-800 mb-4">🧮 マイル効率計算ツール</h3>
+          <p className="text-green-700">現金購入とマイル使用の効率を比較し、最適な支払い方法を提案します。</p>
+        </div>
+      )}
+
+      {/* 航空会社別比較結果 */}
+      <div className="grid gap-6">
+        {result.airlines.map((airline, index) => (
+          <div key={airline.airline || index} className={`bg-white rounded-xl shadow-lg border overflow-hidden ${getAirlineColor(airline.airline)}`}>
+            {/* 航空会社ヘッダー */}
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-xl font-bold text-gray-900">{airline.airline}</h3>
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-yellow-500" />
+                    <span className="text-2xl font-bold text-gray-900">
+                      {currentMiles(airline).toLocaleString()}
                     </span>
-                  )}
-                </div>
-
-                {/* マイル情報 */}
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-800 flex items-center gap-1">
-                      <Award className="w-4 h-4" />
-                      必要マイル
-                    </span>
-                    <div className="text-right">
-                      {airlineInfo.discount ? (
-                        <div>
-                          <span className="text-sm text-gray-700 line-through">
-                            {currentMiles(airlineInfo).toLocaleString()}
-                          </span>
-                          <div className="text-lg font-bold text-red-600">
-                            {airlineInfo.discount.discountedMiles.toLocaleString()}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-lg font-bold text-gray-800">
-                          {currentMiles(airlineInfo).toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {airlineInfo.cashPrice && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-800 flex items-center gap-1">
-                        <CreditCard className="w-4 h-4" />
-                        現金価格
-                      </span>
-                      <span className="font-semibold">
-                        {formatCurrency(airlineInfo.cashPrice)}
-                      </span>
-                    </div>
-                  )}
-
-                  {mileValue > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-800 text-sm">
-                        1マイル価値
-                      </span>
-                      <span className="text-sm font-medium text-green-600">
-                        {mileValue.toFixed(2)}円
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 予約開始日 */}
-                <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-800 mb-1">
-                    <Calendar className="w-4 h-4" />
-                    予約開始日
-                  </div>
-                  <div className="font-medium">
-                    {formatDate(bookingStartDate)}
-                  </div>
-                  <div className="text-xs text-gray-700">
-                    ({airlineInfo.bookingStartDays}日前より)
+                    <span className="text-gray-600">マイル</span>
                   </div>
                 </div>
-
-                {/* ディスカウント情報 */}
-                {airlineInfo.discount && (
-                  <div className="bg-red-50 border border-red-200 p-3 rounded-lg mb-4">
-                    <div className="flex items-center gap-2 text-sm text-red-700 mb-1">
-                      <TrendingDown className="w-4 h-4" />
-                      特別キャンペーン
-                    </div>
-                    <div className="text-xs text-red-600">
-                      {airlineInfo.discount.validUntil}まで有効
+                
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-sm text-gray-600">マイル価値</div>
+                    <div className="text-lg font-bold text-green-600">
+                      {formatCurrency(getMileValue(currentMiles(airline)))}
                     </div>
                   </div>
-                )}
-
-                {/* アクションボタン */}
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setSelectedAirline(
-                      selectedAirline === airlineInfo.airline ? null : airlineInfo.airline
-                    )}
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Info className="w-4 h-4" />
-                    詳細情報
-                  </button>
-
-                  {/* アラート作成ボタン */}
-                  {onCreateAlert && (
-                    <button
-                      onClick={() => onCreateAlert({
-                        airline: airlineInfo.airline,
-                        route: result.route,
-                        date: result.date,
-                        price: airlineInfo.cashPrice,
-                        miles: airlineInfo.miles[result.season]
-                      })}
-                      className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                      価格アラート設定
-                    </button>
-                  )}
                   
                   <a
-                    href={`https://www.${airlineInfo.airline.toLowerCase()}.co.jp`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    href="#"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    公式サイトで予約
+                    予約
                   </a>
                 </div>
               </div>
+            </div>
 
-              {/* 詳細情報の展開部分 */}
-              {selectedAirline === airlineInfo.airline && (
-                <div className="border-t border-gray-200 p-6 bg-gray-50">
-                  <h4 className="font-semibold mb-3">シーズン別マイル要件</h4>
-                  <div className="space-y-2 text-sm">
+            {/* 詳細情報 */}
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* マイル情報 */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Award className="w-4 h-4" />
+                    シーズン別マイル
+                  </h4>
+                  <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>レギュラー:</span>
-                      <span>{airlineInfo.miles.regular.toLocaleString()}マイル</span>
+                      <span className="text-gray-600">オフピーク:</span>
+                      <span className="font-medium">{airline.miles.off.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>ピーク:</span>
-                      <span>{airlineInfo.miles.peak.toLocaleString()}マイル</span>
+                      <span className="text-gray-600">レギュラー:</span>
+                      <span className="font-medium">{airline.miles.regular.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>オフピーク:</span>
-                      <span>{airlineInfo.miles.off.toLocaleString()}マイル</span>
+                      <span className="text-gray-600">ピーク:</span>
+                      <span className="font-medium">{airline.miles.peak.toLocaleString()}</span>
                     </div>
                   </div>
-                  
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-yellow-700 text-sm">
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="font-medium">ご注意</span>
+                </div>
+
+                {/* 予約情報 */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    予約情報
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">受付開始:</span>
+                      <span className="font-medium">
+                        {calculateBookingStartDate(result.date, airline.bookingStartDays)}
+                      </span>
                     </div>
-                    <ul className="text-xs text-yellow-600 mt-1 space-y-1">
-                      <li>• 特典航空券の空席状況により予約できない場合があります</li>
-                      <li>• マイルの有効期限にご注意ください</li>
-                      <li>• 現金価格は概算値です</li>
-                    </ul>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">現金価格:</span>
+                      <span className="font-medium">{airline.cashPrice ? formatCurrency(airline.cashPrice) : '未設定'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 追加情報 */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Info className="w-4 h-4" />
+                    その他
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">空席数:</span>
+                      <span className="font-medium">{airline.availableSeats || '未設定'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">割引:</span>
+                      <span className="font-medium">{airline.discount ? airline.discount.type : 'なし'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* アクションボタン */}
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setSelectedAirline(selectedAirline === airline.airline ? null : airline.airline)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                >
+                  {selectedAirline === airline.airline ? '詳細を閉じる' : '詳細を見る'}
+                </button>
+                
+                {onCreateAlert && (
+                  <button
+                    onClick={() => onCreateAlert({
+                      airline: airline.airline,
+                      route: result.route,
+                      miles: currentMiles(airline),
+                      date: result.date
+                    })}
+                    className="flex-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4" />
+                    アラート作成
+                  </button>
+                )}
+              </div>
+
+              {/* 詳細表示エリア */}
+              {selectedAirline === airline.airline && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h5 className="font-semibold mb-3">詳細情報</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h6 className="font-medium mb-2">特典航空券の特徴</h6>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        <li>• 燃油サーチャージ: 別途必要</li>
+                        <li>• 座席クラス: エコノミー</li>
+                        <li>• 乗り継ぎ: 最大1回</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h6 className="font-medium mb-2">注意事項</h6>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        <li>• 空席状況により取得できない場合があります</li>
+                        <li>• 変更・取消には手数料が発生します</li>
+                        <li>• マイル有効期限にご注意ください</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
-      {/* 比較サマリー */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">比較サマリー</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-            <div className="text-green-700 font-medium mb-1">最少マイル</div>
-            <div className="text-xl font-bold text-green-800">
-              {Math.min(...result.airlines.map(a => 
-                a.discount ? a.discount.discountedMiles : currentMiles(a)
-              )).toLocaleString()}
-            </div>
-            <div className="text-sm text-green-600">
-              {result.airlines.find(a => 
-                (a.discount ? a.discount.discountedMiles : currentMiles(a)) === 
-                Math.min(...result.airlines.map(b => 
-                  b.discount ? b.discount.discountedMiles : currentMiles(b)
-                ))
-              )?.airline}
-            </div>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-            <div className="text-blue-700 font-medium mb-1">最安現金価格</div>
-            <div className="text-xl font-bold text-blue-800">
-              {formatCurrency(Math.min(...result.airlines.map(a => a.cashPrice || Infinity)))}
-            </div>
-            <div className="text-sm text-blue-600">
-              {result.airlines.find(a => 
-                a.cashPrice === Math.min(...result.airlines.map(b => b.cashPrice || Infinity))
-              )?.airline}
-            </div>
-          </div>
-
-          <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
-            <div className="text-purple-700 font-medium mb-1">最高マイル価値</div>
-            <div className="text-xl font-bold text-purple-800">
-              {Math.max(...result.airlines.map(a => 
-                calculateMileValue(currentMiles(a), a.cashPrice || 0)
-              )).toFixed(2)}円
-            </div>
-            <div className="text-sm text-purple-600">
-              {result.airlines.find(a => 
-                calculateMileValue(currentMiles(a), a.cashPrice || 0) === 
-                Math.max(...result.airlines.map(b => 
-                  calculateMileValue(currentMiles(b), b.cashPrice || 0)
-                ))
-              )?.airline}
-            </div>
-          </div>
+      {/* パターン比較プレースホルダー */}
+      {showPatternComparison && (
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">📊 マイルパターン比較</h3>
+          <p className="text-gray-600">このセクションでは、異なる日程でのマイル数変動を比較できます。</p>
         </div>
-      </div>
+      )}
+
+      {/* カレンダー表示ボタン */}
+      {onViewCalendar && (
+        <div className="text-center">
+          <button
+            onClick={() => onViewCalendar(result.date)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
+          >
+            <Calendar className="w-5 h-5" />
+            カレンダーで他の日程を確認
+          </button>
+        </div>
+      )}
     </div>
   );
 }
