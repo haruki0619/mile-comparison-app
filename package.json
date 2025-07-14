@@ -6,7 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:miles": "node scripts/validate-mile-data.js",
+    "build:distances": "node scripts/buildDistanceTable.js",
+    "build:distances:international": "node scripts/buildDistanceTableWithInternational.js",
+    "update:distances": "npm run build:distances && echo 距離テーブル更新完了！",
+    "update:distances:international": "npm run build:distances:international && echo 国際線対応距離テーブル更新完了！"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
