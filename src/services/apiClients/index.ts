@@ -1,10 +1,8 @@
-import { SkyscannerClient } from './skyscannerClient';
 import { RakutenTravelClient } from './rakutenClient';
 import { AmadeusClient } from './amadeusClient';
 import { APIResponse, FlightSearchParams, UnifiedFlightOffer } from '../../types/api';
 
 export class FlightAPIAggregator {
-  private skyscannerClient?: SkyscannerClient;
   private rakutenClient?: RakutenTravelClient;
   private amadeusClient?: AmadeusClient;
 
@@ -16,12 +14,6 @@ export class FlightAPIAggregator {
     
     const amadeusClientId = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_ID;
     const amadeusClientSecret = process.env.NEXT_PUBLIC_AMADEUS_CLIENT_SECRET;
-
-    // Skyscanner APIは商用利用のみのため一時的に無効化
-    // const skyscannerKey = process.env.NEXT_PUBLIC_SKYSCANNER_API_KEY;
-    // if (skyscannerKey) {
-    //   this.skyscannerClient = new SkyscannerClient(skyscannerKey);
-    // }
 
     if (rakutenAppId && rakutenSecret && rakutenAffiliateId) {
       this.rakutenClient = new RakutenTravelClient(rakutenAppId, rakutenSecret, rakutenAffiliateId);
@@ -73,11 +65,6 @@ export class FlightAPIAggregator {
         errors.push(`Amadeus API例外: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
-
-    // Skyscanner APIは一時的に無効化（商用利用制限のため）
-    // if (this.skyscannerClient) {
-    //   promises.push(this.skyscannerClient.searchFlights(params));
-    // }
 
     // 実データが取得できない場合はモックデータを使用
     if (results.length === 0) {

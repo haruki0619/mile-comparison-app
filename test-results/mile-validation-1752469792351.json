@@ -1,0 +1,9 @@
+[
+  {
+    "testCase": "東京-大阪（レギュラー）",
+    "route": "HND → ITM",
+    "error": "airlines プロパティが見つかりません。レスポンス構造: [\"success\",\"data\",\"sources\",\"timestamp\"], データ部分: [\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\",\"9\",\"10\",\"11\",\"12\"]",
+    "errorStack": "Error: airlines プロパティが見つかりません。レスポンス構造: [\"success\",\"data\",\"sources\",\"timestamp\"], データ部分: [\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\",\"9\",\"10\",\"11\",\"12\"]\n    at validateMileCalculation (C:\\Users\\iwami.DESKTOP-6QUM9P3\\mile-comparison-app\\scripts\\validate-mile-data.js:74:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async runAllTests (C:\\Users\\iwami.DESKTOP-6QUM9P3\\mile-comparison-app\\scripts\\validate-mile-data.js:121:18)",
+    "timestamp": "2025-07-14T05:09:52.348Z"
+  }
+]

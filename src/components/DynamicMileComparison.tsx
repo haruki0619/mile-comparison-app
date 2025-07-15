@@ -25,10 +25,10 @@ export default function DynamicMileComparison({ onBestOptionFound }: DynamicMile
   const [isLoading, setIsLoading] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
 
-  // 人気目的地のプリセット
+  // 人気目的地のプリセット（国内線を優先）
   const popularDestinations = [
-    'ホノルル', 'ロサンゼルス', 'ニューヨーク', 'パリ', 'ロンドン',
-    'シンガポール', 'ソウル', '台北', '香港', 'シドニー'
+    '大阪', '沖縄', '札幌', '福岡', '名古屋',
+    'ホノルル', 'ソウル', '台北', '香港', 'シンガポール'
   ];
 
   const travelClasses = [
@@ -48,8 +48,9 @@ export default function DynamicMileComparison({ onBestOptionFound }: DynamicMile
       const results = mileChartManager.findBestMileOption(destination, travelDate, travelClass);
       setComparisonResults(results);
       
-      if (results.length > 0 && results[0].isBest) {
-        onBestOptionFound?.(results[0]);
+      const bestResult = results.length > 0 ? results[0] : null;
+      if (bestResult?.isBest) {
+        onBestOptionFound?.(bestResult);
       }
       
       setIsLoading(false);

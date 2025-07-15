@@ -76,12 +76,12 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
     onSearch(form);
   };
 
-  // Quick preset buttons
+  // Quick preset buttons - 国内線を優先
   const popularRoutes = [
-    { from: 'NRT', to: 'HNL', label: '東京→ホノルル' },
-    { from: 'NRT', to: 'LAX', label: '東京→ロサンゼルス' },
-    { from: 'KIX', to: 'ICN', label: '大阪→ソウル' },
-    { from: 'NRT', to: 'CDG', label: '東京→パリ' }
+    { from: 'HND', to: 'ITM', label: '東京→大阪' },
+    { from: 'NRT', to: 'OKA', label: '東京→沖縄' },
+    { from: 'HND', to: 'CTS', label: '東京→札幌' },
+    { from: 'HND', to: 'FUK', label: '東京→福岡' }
   ];
 
   const setQuickRoute = (from: string, to: string) => {

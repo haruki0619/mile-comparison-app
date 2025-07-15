@@ -49,23 +49,48 @@ export class AmadeusClient {
 
   async searchFlights(params: FlightSearchParams): Promise<APIResponse<UnifiedFlightOffer[]>> {
     try {
+      // サーバーサイドの場合は実際のAPIを呼び出し
+      if (typeof window === 'undefined') {
+        return this.performRealAPISearch(params);
+      }
+      
+      console.log('🔍 Amadeus API検索開始: ブラウザCORS制限により推定データを使用');
+      
+      // ブラウザからの直接API呼び出しはCORSで制限されるため、
+      // サーバーサイドプロキシまたは推定データを使用
+      return this.generateEstimatedData(params);
+
+    } catch (error) {
+      console.error('Amadeus API検索エラー:', error);
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: 'API_ERROR'
+        }
+      };
+    }
+  }
+
+  /**
+   * 実際のAmadeus API呼び出し（サーバーサイド専用）
+   */
+  private async performRealAPISearch(params: FlightSearchParams): Promise<APIResponse<UnifiedFlightOffer[]>> {
+    try {
+      console.log('🚀 Amadeus Real API search:', params);
+      
       const token = await this.getAccessToken();
+      
+      const searchUrl = new URL(`${this.baseUrl}/v2/shopping/flight-offers`);
+      searchUrl.searchParams.append('originLocationCode', params.departure);
+      searchUrl.searchParams.append('destinationLocationCode', params.arrival);
+      searchUrl.searchParams.append('departureDate', params.departureDate);
+      searchUrl.searchParams.append('adults', params.passengers?.adults?.toString() || '1');
+      searchUrl.searchParams.append('currencyCode', 'JPY');
+      searchUrl.searchParams.append('max', '10');
 
-      // Amadeus Flight Offers Search API
-      const searchParams = new URLSearchParams({
-        originLocationCode: params.departure,
-        destinationLocationCode: params.arrival,
-        departureDate: params.departureDate,
-        adults: params.passengers.adults.toString(),
-        ...(params.passengers.children && { children: params.passengers.children.toString() }),
-        ...(params.passengers.infants && { infants: params.passengers.infants.toString() }),
-        ...(params.returnDate && { returnDate: params.returnDate }),
-        travelClass: this.mapCabinClass(params.cabinClass),
-        currencyCode: params.currency || 'JPY',
-        max: '10', // 最大結果数
-      });
-
-      const response = await fetch(`${this.baseUrl}/v2/shopping/flight-offers?${searchParams}`, {
+      const response = await fetch(searchUrl.toString(), {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -73,148 +98,179 @@ export class AmadeusClient {
       });
 
       if (!response.ok) {
-        throw new Error(`Amadeus API エラー: ${response.status} ${response.statusText}`);
+        throw new Error(`Amadeus API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       
-      if (!data.data || data.data.length === 0) {
-        console.warn('Amadeus APIからのデータが空です。推定データを使用します。');
-        return this.generateEstimatedData(params);
-      }
+      const offers: UnifiedFlightOffer[] = (data.data || []).map((offer: any) => {
+        const segment = offer.itineraries[0].segments[0];
+        const price = offer.price;
+        
+        return {
+          id: `amadeus-real-${offer.id}`,
+          source: 'amadeus' as const,
+          route: {
+            departure: params.departure,
+            arrival: params.arrival,
+            departureTime: segment.departure.at.split('T')[1].substring(0, 5),
+            arrivalTime: segment.arrival.at.split('T')[1].substring(0, 5)
+          },
+          pricing: {
+            currency: price.currency,
+            totalPrice: parseFloat(price.total),
+            basePrice: parseFloat(price.base),
+            taxes: parseFloat(price.fees?.reduce((sum: number, fee: any) => sum + parseFloat(fee.amount), 0) || '0')
+          },
+          airline: {
+            code: segment.carrierCode,
+            name: this.getAirlineName(segment.carrierCode)
+          },
+          availability: {
+            seats: segment.numberOfBookableSeats || 9,
+            bookingClass: segment.pricingDetailPerAdult?.travelClass || 'Y'
+          }
+        };
+      });
 
-      const unifiedOffers = this.transformToUnifiedFormat(data);
-
+      console.log(`✅ Amadeus Real API success: ${offers.length} results`);
+      
       return {
         success: true,
-        data: unifiedOffers,
-        rateLimit: {
-          remaining: parseInt(response.headers.get('x-ratelimit-remaining') || '100'),
-          resetTime: parseInt(response.headers.get('x-ratelimit-reset') || '0')
-        }
+        data: offers
       };
+
     } catch (error) {
-      console.error('Amadeus APIエラー:', error);
-      
-      // エラー時は推定データを返す
+      console.error('❌ Amadeus Real API error:', error);
+      // フォールバックとして推定データを返す
       return this.generateEstimatedData(params);
     }
   }
 
-  private mapCabinClass(cabinClass: string): string {
-    const classMap: { [key: string]: string } = {
-      'economy': 'ECONOMY',
-      'premium_economy': 'PREMIUM_ECONOMY',
-      'business': 'BUSINESS',
-      'first': 'FIRST'
-    };
-    return classMap[cabinClass.toLowerCase()] || 'ECONOMY';
+  async searchAirports(query: string): Promise<APIResponse<any[]>> {
+    try {
+      console.log('🔍 Amadeus空港検索: 推定データを使用');
+      
+      // 簡単な空港データを返す
+      const airports = [
+        { iataCode: 'NRT', name: '成田国際空港', city: 'Tokyo' },
+        { iataCode: 'HND', name: '羽田空港', city: 'Tokyo' },
+        { iataCode: 'KIX', name: '関西国際空港', city: 'Osaka' },
+        { iataCode: 'ITM', name: '大阪国際空港（伊丹）', city: 'Osaka' }
+      ].filter(airport => 
+        airport.name.toLowerCase().includes(query.toLowerCase()) ||
+        airport.iataCode.toLowerCase().includes(query.toLowerCase())
+      );
+
+      return {
+        success: true,
+        data: airports
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        data: [],
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: 'API_ERROR'
+        }
+      };
+    }
   }
 
   private async generateEstimatedData(params: FlightSearchParams): Promise<APIResponse<UnifiedFlightOffer[]>> {
-    // 実際の相場に基づく推定価格データ
-    const routePricing = this.getEstimatedPricing(params.departure, params.arrival);
-    const airlines = ['NH', 'JL', '6J', 'BC']; // ANA, JAL, ソラシドエア, スカイマーク
+    console.log('📊 Amadeus推定データを生成中...');
     
-    const estimatedOffers: UnifiedFlightOffer[] = airlines.map((airlineCode, index) => ({
-      id: `amadeus-estimated-${index}`,
-      source: 'amadeus' as const,
-      route: {
-        departure: params.departure,
-        arrival: params.arrival,
-        departureTime: '09:00',
-        arrivalTime: '11:00'
+    const basePrice = this.calculateEstimatedPrice(params.departure, params.arrival);
+    
+    const offers: UnifiedFlightOffer[] = [
+      {
+        id: 'amadeus-estimated-1',
+        source: 'amadeus' as const,
+        route: {
+          departure: params.departure,
+          arrival: params.arrival,
+          departureTime: '09:00',
+          arrivalTime: '11:30'
+        },
+        pricing: {
+          currency: 'JPY',
+          totalPrice: Math.round(basePrice * 1.1),
+          basePrice: basePrice,
+          taxes: Math.round(basePrice * 0.1)
+        },
+        airline: {
+          code: 'NH',
+          name: 'ANA'
+        },
+        availability: {
+          seats: 5,
+          bookingClass: 'Y'
+        }
       },
-      pricing: {
-        currency: 'JPY',
-        totalPrice: routePricing.base + (index * 3000) + Math.floor(Math.random() * 8000),
-        basePrice: routePricing.base,
-        taxes: routePricing.taxes
-      },
-      airline: {
-        code: airlineCode,
-        name: this.getAirlineName(airlineCode)
-      },
-      availability: {
-        seats: Math.floor(Math.random() * 9) + 1,
-        bookingClass: 'Y'
+      {
+        id: 'amadeus-estimated-2', 
+        source: 'amadeus' as const,
+        route: {
+          departure: params.departure,
+          arrival: params.arrival,
+          departureTime: '14:30',
+          arrivalTime: '17:00'
+        },
+        pricing: {
+          currency: 'JPY',
+          totalPrice: Math.round(basePrice * 1.15),
+          basePrice: Math.round(basePrice * 1.05),
+          taxes: Math.round(basePrice * 0.1)
+        },
+        airline: {
+          code: 'JL',
+          name: 'JAL'
+        },
+        availability: {
+          seats: 3,
+          bookingClass: 'Y'
+        }
       }
-    }));
+    ];
 
     return {
       success: true,
-      data: estimatedOffers
+      data: offers
     };
   }
 
-  private getEstimatedPricing(departure: string, arrival: string): { base: number; taxes: number } {
-    // 国際線・国内線の相場設定
-    const routeMap: { [key: string]: number } = {
-      // 国内線
-      'HND-CTS': 35000, 'NRT-CTS': 32000,
-      'HND-FUK': 28000, 'NRT-FUK': 26000,
-      'HND-OKA': 45000, 'NRT-OKA': 42000,
-      'ITM-CTS': 30000, 'KIX-CTS': 32000,
-      'ITM-FUK': 20000, 'KIX-FUK': 22000,
-      'ITM-OKA': 35000, 'KIX-OKA': 37000,
-      // 国際線（例）
-      'NRT-ICN': 45000, 'HND-ICN': 48000, // 韓国
-      'NRT-TPE': 55000, 'HND-TPE': 58000, // 台湾
-      'NRT-BKK': 75000, 'HND-BKK': 78000, // タイ
-      'NRT-SIN': 85000, 'HND-SIN': 88000, // シンガポール
+  private calculateEstimatedPrice(departure: string, arrival: string): number {
+    // 簡単な距離ベース価格計算
+    const basePrices: { [key: string]: number } = {
+      'NRT-KIX': 25000,
+      'NRT-ITM': 24000, 
+      'NRT-CTS': 35000,
+      'NRT-FUK': 38000,
+      'HND-KIX': 26000,
+      'HND-ITM': 25000,
+      'HND-CTS': 36000,
+      'HND-FUK': 39000
     };
-
-    const routeKey = `${departure}-${arrival}`;
+    
+    const key = `${departure}-${arrival}`;
     const reverseKey = `${arrival}-${departure}`;
-    const basePrice = routeMap[routeKey] || routeMap[reverseKey] || 50000; // 国際線のデフォルト
-
-    return {
-      base: Math.floor(basePrice * 0.82),
-      taxes: Math.floor(basePrice * 0.18)
-    };
+    
+    return basePrices[key] || basePrices[reverseKey] || 30000;
   }
 
   private getAirlineName(code: string): string {
-    const airlineMap: { [key: string]: string } = {
+    const airlines: { [key: string]: string } = {
       'NH': 'ANA',
       'JL': 'JAL',
-      '6J': 'ソラシドエア',
-      'BC': 'スカイマーク',
-      'MM': 'ピーチ',
-      'GK': 'ジェットスター'
+      'UA': 'United',
+      'AA': 'American',
+      'SQ': 'Singapore',
+      'LH': 'Lufthansa',
+      'CX': 'Cathay Pacific'
     };
-    return airlineMap[code] || code;
-  }
-
-  private transformToUnifiedFormat(data: any): UnifiedFlightOffer[] {
-    return data.data.map((offer: any, index: number) => {
-      const segment = offer.itineraries[0]?.segments[0];
-      const price = offer.price;
-      
-      return {
-        id: `amadeus-${offer.id}`,
-        source: 'amadeus' as const,
-        route: {
-          departure: segment?.departure?.iataCode || 'TBD',
-          arrival: segment?.arrival?.iataCode || 'TBD',
-          departureTime: segment?.departure?.at?.split('T')[1]?.substring(0, 5) || 'TBD',
-          arrivalTime: segment?.arrival?.at?.split('T')[1]?.substring(0, 5) || 'TBD'
-        },
-        pricing: {
-          currency: price?.currency || 'JPY',
-          totalPrice: parseFloat(price?.total || '0'),
-          basePrice: parseFloat(price?.base || '0'),
-          taxes: parseFloat(price?.total || '0') - parseFloat(price?.base || '0')
-        },
-        airline: {
-          code: segment?.carrierCode || 'XX',
-          name: this.getAirlineName(segment?.carrierCode || 'XX')
-        },
-        availability: {
-          seats: offer.numberOfBookableSeats || 9,
-          bookingClass: segment?.cabin || 'Y'
-        }
-      };
-    });
+    
+    return airlines[code] || 'Unknown Airline';
   }
 }

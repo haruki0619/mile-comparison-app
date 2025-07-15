@@ -15,33 +15,89 @@ import {
   getSolaseedDistanceCategory,
   getSeason 
 } from '../data';
+import { 
+  internationalAirports,
+  internationalRoutes,
+  getInternationalMiles,
+  getFuelSurcharge,
+  otherAirlinesMileChart
+} from '../data/internationalMiles';
 
 // デバッグ用ログ関数
 const debugLog = (message: string, data?: unknown) => {
   console.log(`🧮 [MileCalculator] ${message}`, data || '');
 };
 
-// 路線検索
+// 路線検索（国内線・国際線対応）
 export function findRoute(departure: string, arrival: string): Route | null {
   debugLog('Finding route', { departure, arrival });
-  const route = routes.find(route => 
+  
+  // 国内線路線を先に検索
+  let route = routes.find(route => 
     (route.departure === departure && route.arrival === arrival) ||
     (route.departure === arrival && route.arrival === departure)
-  ) || null;
+  );
+  
+  // 国内線で見つからない場合は国際線を検索
+  if (!route) {
+    const intlRoute = internationalRoutes.find(route => 
+      (route.departure === departure && route.arrival === arrival) ||
+      (route.departure === arrival && route.arrival === departure)
+    );
+    if (intlRoute) {
+      route = intlRoute;
+    }
+  }
+  
   debugLog('Route found', route);
-  return route;
+  return route || null;
 }
 
-// 空港情報を取得
+// 空港情報を取得（国内線・国際線対応）
 export function getAirport(code: string) {
   debugLog('Getting airport', code);
-  const airport = airports.find(airport => airport.code === code);
+  
+  // 国内空港を先に検索
+  let airport = airports.find(airport => airport.code === code);
+  
+  // 国内空港で見つからない場合は国際空港を検索
+  if (!airport) {
+    airport = internationalAirports.find(airport => airport.code === code);
+  }
+  
   debugLog('Airport found', airport);
   return airport;
 }
 
-// 航空会社別マイル計算
-export function calculateMiles(airline: Airline, distance: number, season: 'regular' | 'peak' | 'off'): number {
+// 国際線かどうかを判定
+export function isInternationalRoute(departure: string, arrival: string): boolean {
+  const domesticCodes = airports.map(a => a.code);
+  const isDepartureInternational = !domesticCodes.includes(departure);
+  const isArrivalInternational = !domesticCodes.includes(arrival);
+  
+  return isDepartureInternational || isArrivalInternational;
+}
+
+// 航空会社別マイル計算（国内線・国際線・他社対応）
+export function calculateMiles(
+  airline: Airline, 
+  distance: number, 
+  season: 'regular' | 'peak' | 'off',
+  departure?: string,
+  arrival?: string
+): number {
+  debugLog('Calculating miles', { airline, distance, season, departure, arrival });
+  
+  // 国際線の場合
+  if (departure && arrival && isInternationalRoute(departure, arrival)) {
+    const intlMiles = getInternationalMiles(airline, departure, arrival, season);
+    if (intlMiles) {
+      debugLog('International miles calculated', intlMiles[season]);
+      return intlMiles[season];
+    }
+  }
+  
+  // 国内線の場合
   let mileChart;
   let distanceCategory;
 
@@ -59,16 +115,28 @@ export function calculateMiles(airline: Airline, distance: number, season: 'regu
       distanceCategory = getSolaseedDistanceCategory(distance);
       break;
     default:
-      return 0;
+      // その他の航空会社をチェック
+      if (otherAirlinesMileChart[airline]) {
+        mileChart = otherAirlinesMileChart[airline];
+        distanceCategory = getDistanceCategory(distance);
+      } else {
+        debugLog('Unknown airline', airline);
+        return 0;
+      }
   }
 
   const requirement = mileChart[distanceCategory];
-  if (!requirement) return 0;
+  if (!requirement) {
+    debugLog('No requirement found for distance category', distanceCategory);
+    return 0;
+  }
 
-  return requirement[season];
+  const miles = requirement[season];
+  debugLog('Domestic miles calculated', miles);
+  return miles;
 }
 
-// 予約開始日を取得
+// 予約開始日を取得（全航空会社対応）
 export function getBookingStartDays(airline: Airline): number {
   switch (airline) {
     case 'ANA':
@@ -77,8 +145,13 @@ export function getBookingStartDays(airline: Airline): number {
       return 360; // 搭乗日の360日前
     case 'SOLASEED':
       return 90;  // 搭乗日の90日前
+    case 'Peach':
+    case 'Jetstar':
+    case 'Vanilla':
+    case 'Spring':
+      return 180; // LCC各社は約半年前
     default:
-      return 0;
+      return 90;  // その他は3ヶ月前
   }
 }
 
@@ -123,20 +196,27 @@ export function estimateCashPrice(airline: Airline, distance: number, season: 'r
 }
 
 // ディスカウント情報を取得（モック）
-export function getDiscountInfo(airline: Airline, route: Route, date: string) {
+export function getDiscountInfo(airline: Airline, route: Route, date: string): {
+  type: 'tokutabi' | 'timesale' | 'campaign';
+  discountedMiles: number;
+  validUntil: string;
+} | undefined {
   // 実際にはAPIやデータベースから取得
   // ここではランダムにディスカウントを適用
   const random = Math.random();
   
   if (random < 0.3) { // 30%の確率でディスカウント
-    const discountTypes = ['tokutabi', 'timesale', 'campaign'] as const;
-    const type = discountTypes[Math.floor(Math.random() * discountTypes.length)];
+    const discountTypes: ('tokutabi' | 'timesale' | 'campaign')[] = ['tokutabi', 'timesale', 'campaign'];
+    const randomIndex = Math.floor(Math.random() * discountTypes.length);
+    const selectedType = discountTypes[randomIndex];
     
-    return {
-      type,
-      discountedMiles: Math.round(calculateMiles(airline, route.distance, getSeason(date)) * 0.7),
-      validUntil: '2025-08-31'
-    };
+    if (selectedType) {
+      return {
+        type: selectedType,
+        discountedMiles: Math.round(calculateMiles(airline, route.distance, getSeason(date)) * 0.7),
+        validUntil: '2025-08-31'
+      };
+    }
   }
   
   return undefined;
@@ -160,8 +240,19 @@ export async function searchFlights(searchForm: SearchForm): Promise<SearchResul
   const season = getSeason(searchForm.date);
   debugLog('Season determined', season);
   
-  const airlines: Airline[] = ['ANA', 'JAL', 'SOLASEED'];
-  debugLog('Processing airlines', airlines);
+  // 路線タイプに応じて航空会社を選択
+  const isIntl = isInternationalRoute(searchForm.departure, searchForm.arrival);
+  let airlines: Airline[];
+  
+  if (isIntl) {
+    // 国際線の場合はANA・JALのみ
+    airlines = ['ANA', 'JAL'];
+  } else {
+    // 国内線の場合は全社対応
+    airlines = ['ANA', 'JAL', 'SOLASEED', 'Peach', 'Jetstar'];
+  }
+  
+  debugLog('Processing airlines', { airlines, isInternational: isIntl });
   
   const airlineResults: AirlineMileInfo[] = airlines.map(airline => {
     debugLog(`Processing ${airline}`);
@@ -169,17 +260,21 @@ export async function searchFlights(searchForm: SearchForm): Promise<SearchResul
     const cashPrice = estimateCashPrice(airline, route.distance, season);
     const bookingStartDays = getBookingStartDays(airline);
     const discount = getDiscountInfo(airline, route, searchForm.date);
+    
+    // 国際線の場合は燃油サーチャージを追加
+    const fuelSurcharge = isIntl ? getFuelSurcharge(airline, searchForm.departure, searchForm.arrival) : undefined;
 
-    const result = {
+    const result: AirlineMileInfo = {
       airline,
       miles: {
-        regular: calculateMiles(airline, route.distance, 'regular'),
-        peak: calculateMiles(airline, route.distance, 'peak'),
-        off: calculateMiles(airline, route.distance, 'off'),
+        regular: calculateMiles(airline, route.distance, 'regular', searchForm.departure, searchForm.arrival),
+        peak: calculateMiles(airline, route.distance, 'peak', searchForm.departure, searchForm.arrival),
+        off: calculateMiles(airline, route.distance, 'off', searchForm.departure, searchForm.arrival),
       },
       cashPrice,
       bookingStartDays,
-      discount,
+      ...(fuelSurcharge && { fuelSurcharge }),
+      ...(discount && { discount }), // discountがある場合のみ追加
     };
     
     debugLog(`${airline} result`, result);
@@ -201,7 +296,8 @@ export async function searchFlights(searchForm: SearchForm): Promise<SearchResul
 export function calculateBookingStartDate(flightDate: string, daysBefore: number): string {
   const date = new Date(flightDate);
   date.setDate(date.getDate() - daysBefore);
-  return date.toISOString().split('T')[0];
+  const result = date.toISOString().split('T')[0];
+  return result || flightDate; // フォールバック
 }
 
 // マイルと現金の比較（マイルの価値計算）

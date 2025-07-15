@@ -1,6 +1,6 @@
 'use client';
 
-import { Plane, Calendar, Bell, Calculator } from 'lucide-react';
+import { Plane, Globe, Calendar, Bell, Calculator, TestTube, ArrowRightLeft, BookOpen } from 'lucide-react';
 import { TabType } from '../constants';
 
 interface TabNavigationProps {
@@ -10,17 +10,25 @@ interface TabNavigationProps {
 
 const iconMap = {
   Plane,
+  Globe,
   Calendar,
   Bell,
-  Calculator
+  Calculator,
+  TestTube,
+  ArrowRightLeft,
+  BookOpen
 };
 
 export default function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
   const tabs = [
     { id: 'search' as const, label: '検索・比較', icon: 'Plane' as const },
+    { id: 'global' as const, label: 'グローバルマイル', icon: 'Globe' as const },
     { id: 'calendar' as const, label: '価格カレンダー', icon: 'Calendar' as const },
     { id: 'alerts' as const, label: '価格アラート', icon: 'Bell' as const },
-    { id: 'calculator' as const, label: '価値計算機', icon: 'Calculator' as const }
+    { id: 'calculator' as const, label: '価値計算機', icon: 'Calculator' as const },
+    { id: 'transfer' as const, label: '転送計算機', icon: 'ArrowRightLeft' as const },
+    { id: 'casestudy' as const, label: 'ケーススタディ', icon: 'BookOpen' as const },
+    { id: 'validator' as const, label: 'データ検証', icon: 'TestTube' as const }
   ];
 
   return (

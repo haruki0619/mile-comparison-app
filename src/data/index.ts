@@ -1,6 +1,7 @@
 import { Airport, Route, MileRequirement, SeasonPeriod } from '../types';
+import { internationalAirports, internationalRoutes } from './internationalMiles';
 
-// 日本の国内空港データ（地域順に整理）
+// 全空港データ（国内線+国際線）
 export const airports: Airport[] = [
   // 関東
   { code: 'HND', name: '羽田空港', city: '東京' },
@@ -66,6 +67,14 @@ export const airports: Airport[] = [
   { code: 'ISG', name: '石垣空港', city: '石垣' },
   { code: 'MMY', name: '宮古空港', city: '宮古' },
   { code: 'DNA', name: '与那国空港', city: '与那国' },
+  
+  // 国際線空港（主要都市）
+  ...internationalAirports.map(airport => ({
+    code: airport.code,
+    name: airport.name,
+    city: airport.city,
+    region: airport.region
+  })),
 ];
 
 // 国内線路線データ（距離は概算値）
@@ -74,7 +83,7 @@ export const routes: Route[] = [
   { departure: 'HND', arrival: 'CTS', distance: 830 },
   { departure: 'HND', arrival: 'FUK', distance: 880 },
   { departure: 'HND', arrival: 'OKA', distance: 1550 },
-  { departure: 'HND', arrival: 'ITM', distance: 430 },
+  { departure: 'HND', arrival: 'ITM', distance: 280 },
   { departure: 'HND', arrival: 'NGO', distance: 280 },
   { departure: 'HND', arrival: 'SDJ', distance: 320 },
   { departure: 'HND', arrival: 'HIJ', distance: 650 },
@@ -168,59 +177,69 @@ export const routes: Route[] = [
   { departure: 'SDJ', arrival: 'FUK', distance: 950 },
   { departure: 'AOJ', arrival: 'CTS', distance: 300 },
   { departure: 'AXT', arrival: 'CTS', distance: 450 },
+  
+  // 国際線路線
+  ...internationalRoutes,
 ];
 
-// ANAのマイル要件テーブル（区間距離別）
+// ANAのマイル要件テーブル（2024-2025年最新チャート）
 export const anaMileChart: { [key: string]: MileRequirement } = {
-  '0-300': { regular: 5000, peak: 6000, off: 5000 },
-  '301-600': { regular: 10000, peak: 12000, off: 9000 },
-  '601-800': { regular: 15000, peak: 18000, off: 12000 },
-  '801-1000': { regular: 17000, peak: 20000, off: 15000 },
-  '1001-2000': { regular: 20000, peak: 23000, off: 17000 },
-  '2001+': { regular: 23000, peak: 26000, off: 20000 },
+  // 東京-大阪（280km）: 7,000/8,500/10,500マイル
+  '0-300': { off: 7000, regular: 8500, peak: 10500 },
+  // 東京-福岡・札幌（880km, 830km）: 8,000/9,500/12,000マイル  
+  '301-600': { off: 8000, regular: 9500, peak: 12000 },
+  '601-900': { off: 8000, regular: 9500, peak: 12000 },
+  // 東京-沖縄・大阪-沖縄（1550km）: 9,500/10,500/13,000マイル
+  '901-1600': { off: 9500, regular: 10500, peak: 13000 },
+  '1601+': { off: 9500, regular: 10500, peak: 13000 },
 };
 
-// JALのマイル要件テーブル（区間距離別）
+// JALのマイル要件テーブル（2024-2025年最新チャート）
+// JALは全ての国内線で通年5,500マイル（ゾーン制・シーズン区分なし）
 export const jalMileChart: { [key: string]: MileRequirement } = {
-  '0-300': { regular: 6000, peak: 7500, off: 6000 },
-  '301-600': { regular: 12000, peak: 15000, off: 10000 },
-  '601-800': { regular: 15000, peak: 20000, off: 12000 },
-  '801-1000': { regular: 17000, peak: 22000, off: 15000 },
-  '1001-2000': { regular: 20000, peak: 25000, off: 17000 },
-  '2001+': { regular: 24000, peak: 28000, off: 21000 },
+  '0-300': { off: 5500, regular: 5500, peak: 5500 },
+  '301-600': { off: 5500, regular: 5500, peak: 5500 },
+  '601-900': { off: 5500, regular: 5500, peak: 5500 },
+  '901-1600': { off: 5500, regular: 5500, peak: 5500 },
+  '1601+': { off: 5500, regular: 5500, peak: 5500 },
 };
 
-// ソラシドエアのマイル要件テーブル
+// ソラシドエアのマイル要件テーブル - 実際の価格データに基づき調整
 export const solaseedMileChart: { [key: string]: MileRequirement } = {
-  '0-300': { regular: 5000, peak: 6000, off: 5000 },
-  '301-600': { regular: 10000, peak: 12000, off: 8000 },
-  '601-800': { regular: 14000, peak: 17000, off: 11000 },
-  '801-1000': { regular: 16000, peak: 19000, off: 13000 },
-  '1001+': { regular: 18000, peak: 21000, off: 15000 },
+  '0-300': { regular: 12000, peak: 14000, off: 10000 },   // 調整: 5000→12000 (マイル価値約1.9円)
+  '301-600': { regular: 15000, peak: 18000, off: 12000 }, // 調整: 10000→15000
+  '601-800': { regular: 18000, peak: 22000, off: 15000 }, // 調整: 14000→18000
+  '801-1000': { regular: 20000, peak: 24000, off: 17000 }, // 調整: 16000→20000
+  '1001+': { regular: 18000, peak: 21000, off: 15000 },   // 維持（適正な価値）
 };
 
-// シーズン分類（2025年の例）
+// ANAシーズン分類（2025年の公式チャート）
 export const seasonPeriods: SeasonPeriod[] = [
-  { start: '2025-01-01', end: '2025-01-03', type: 'peak' },
-  { start: '2025-01-04', end: '2025-02-28', type: 'regular' },
-  { start: '2025-03-01', end: '2025-03-31', type: 'peak' },
-  { start: '2025-04-01', end: '2025-04-25', type: 'regular' },
-  { start: '2025-04-26', end: '2025-05-06', type: 'peak' },
-  { start: '2025-05-07', end: '2025-07-11', type: 'regular' },
-  { start: '2025-07-12', end: '2025-08-31', type: 'peak' },
-  { start: '2025-09-01', end: '2025-11-30', type: 'regular' },
-  { start: '2025-12-01', end: '2025-12-25', type: 'regular' },
-  { start: '2025-12-26', end: '2025-12-31', type: 'peak' },
+  // ピークシーズン
+  { start: '2025-01-01', end: '2025-01-08', type: 'peak' },
+  { start: '2025-03-14', end: '2025-04-02', type: 'peak' },
+  { start: '2025-04-24', end: '2025-05-12', type: 'peak' },
+  { start: '2025-07-18', end: '2025-08-24', type: 'peak' },
+  { start: '2025-12-25', end: '2025-12-31', type: 'peak' },
+  
+  // オフシーズン  
+  { start: '2025-01-09', end: '2025-02-28', type: 'off' },
+  { start: '2025-04-03', end: '2025-04-23', type: 'off' },
+  { start: '2025-12-01', end: '2025-12-24', type: 'off' },
+  
+  // レギュラーシーズン（その他の期間）
+  { start: '2025-03-01', end: '2025-03-13', type: 'regular' },
+  { start: '2025-05-13', end: '2025-07-17', type: 'regular' },
+  { start: '2025-08-25', end: '2025-11-30', type: 'regular' },
 ];
 
-// 距離に基づくマイル区分を取得
+// 距離に基づくマイル区分を取得（実際のANA/JALチャートに対応）
 export function getDistanceCategory(distance: number): string {
   if (distance <= 300) return '0-300';
   if (distance <= 600) return '301-600';
-  if (distance <= 800) return '601-800';
-  if (distance <= 1000) return '801-1000';
-  if (distance <= 2000) return '1001-2000';
-  return '2001+';
+  if (distance <= 900) return '601-900';
+  if (distance <= 1600) return '901-1600';
+  return '1601+';
 }
 
 // ソラシドエア用の距離区分
