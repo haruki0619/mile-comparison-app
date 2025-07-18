@@ -8,6 +8,7 @@ import { FlightTypeToggle } from './FlightTypeToggle';
 interface UnifiedSearchFormProps {
   onSearch: (searchData: any) => void;
   isLoading?: boolean;
+  className?: string;
 }
 
 interface MileageProgram {
@@ -30,7 +31,7 @@ const MILEAGE_PROGRAMS: MileageProgram[] = [
   { id: 'british', name: 'British Airways Executive Club', category: 'international' },
 ];
 
-export function UnifiedSearchForm({ onSearch, isLoading = false }: UnifiedSearchFormProps) {
+export function UnifiedSearchForm({ onSearch, isLoading = false, className = '' }: UnifiedSearchFormProps) {
   const [searchData, setSearchData] = useState({
     from: '',
     to: '',
@@ -136,7 +137,7 @@ export function UnifiedSearchForm({ onSearch, isLoading = false }: UnifiedSearch
   }, [searchData, onSearch]);
 
   return (
-    <div className="unified-search-form">
+    <div className={`unified-search-form ${className}`.trim()}>
       {/* シンプルなヘッダー */}
       <div className="search-header-simple">
         <h2 className="header-title-simple">フライト検索・マイル比較</h2>
