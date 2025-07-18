@@ -37,7 +37,7 @@ export default function MilePatternComparison({ result, onSelectPattern }: MileP
 
   // JALの例に基づいたパターン生成（実際のAPIからデータを取得する場合はここを修正）
   const generatePatterns = (): MilePatternOption[] => {
-    const baseRoute = `${result.route.departure} → ${result.route.arrival}`;
+    const baseRoute = `${result.route?.departure || 'N/A'} → ${result.route?.arrival || 'N/A'}`;
     
     return [
       {

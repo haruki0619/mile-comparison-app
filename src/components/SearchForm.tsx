@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, Plane, Calendar, Users, ArrowRight, MapPin } from 'lucide-react';
+import { Search, Plane, Calendar, Users, ArrowRight, MapPin, Award, Info } from 'lucide-react';
 import { SearchForm as SearchFormType } from '../types';
 import { AIRPORTS } from '../constants';
 import { getTodayString, validateSearchForm } from '../utils';
@@ -9,8 +9,20 @@ import { getTodayString, validateSearchForm } from '../utils';
 // 人数オプション
 const PASSENGER_OPTIONS = [1, 2, 3, 4, 5, 6];
 
+// マイレージプログラムオプション
+const MILEAGE_PROGRAMS = [
+  { code: 'ANA', name: 'ANAマイレージクラブ', alliance: 'Star Alliance' },
+  { code: 'JAL', name: 'JALマイレージバンク', alliance: 'oneworld' },
+  { code: 'DL', name: 'デルタスカイマイル', alliance: 'SkyTeam' },
+  { code: 'UA', name: 'ユナイテッド マイレージプラス', alliance: 'Star Alliance' },
+  { code: 'AA', name: 'アメリカン・アドバンテージ', alliance: 'oneworld' },
+  { code: 'AC', name: 'エアカナダ アエロプラン', alliance: 'Star Alliance' },
+  { code: 'AF', name: 'エールフランス・KLM フライングブルー', alliance: 'SkyTeam' },
+  { code: 'BA', name: 'ブリティッシュエアウェイズ エグゼクティブクラブ', alliance: 'oneworld' }
+];
+
 interface SearchFormProps {
-  onSearch: (data: SearchFormType) => void;
+  onSearch: (data: SearchFormType & { mileageProgram?: string }) => void;
   isLoading?: boolean;
 }
 
@@ -19,6 +31,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
   const [arrival, setArrival] = useState('');
   const [date, setDate] = useState('');
   const [passengers, setPassengers] = useState(1);
+  const [mileageProgram, setMileageProgram] = useState('');
 
   // 地域別空港グループ化
   const airportsByRegion = useMemo(() => {
@@ -51,7 +64,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
     >
       <option value="">{placeholder}</option>
       {Object.entries(airportsByRegion).map(([region, airports]) => (
-        <optgroup key={region} label={`🌏 ${region}`}>
+        <optgroup key={region} label={`${region}`}>
           {airports.map(airport => (
             <option key={airport.code} value={airport.code}>
               {airport.city} - {airport.name} ({airport.code})
@@ -65,7 +78,7 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const form = { departure, arrival, date, passengers };
+    const form = { departure, arrival, date, passengers, mileageProgram };
     const validationError = validateSearchForm(form);
     
     if (validationError) {
@@ -184,6 +197,29 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
             </div>
           </div>
 
+          {/* Mileage Program Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Award className="h-4 w-4 inline mr-1" />
+              マイレージプログラム（任意）
+            </label>
+            <select
+              value={mileageProgram}
+              onChange={(e) => setMileageProgram(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+            >
+              <option value="">すべてのプログラムを比較</option>
+              {MILEAGE_PROGRAMS.map(program => (
+                <option key={program.code} value={program.code}>
+                  {program.name} ({program.alliance})
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              特定のマイレージプログラムを選択すると、そのプログラムでの最適な特典航空券を優先表示します
+            </p>
+          </div>
+
           {/* Search Button */}
           <button
             type="submit"
@@ -206,9 +242,12 @@ export default function SearchForm({ onSearch, isLoading = false }: SearchFormPr
 
         {/* Help Text */}
         <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <p className="text-sm text-blue-700">
-            💡 <strong>検索のコツ:</strong> 
-            人気ルートボタンで素早く入力、出発日を柔軟に設定することで最適なマイル数を見つけられます。
+          <p className="text-sm text-blue-700 flex items-start gap-2">
+            <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <span>
+              <strong>検索のコツ:</strong> 
+              人気ルートボタンで素早く入力、出発日を柔軟に設定することで最適なマイル数を見つけられます。
+            </span>
           </p>
         </div>
       </div>

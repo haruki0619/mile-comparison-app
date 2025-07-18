@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Compass, Search, Globe, Calendar, Bell, Calculator, TestTube, Menu } from 'lucide-react';
+import { Compass, Search, Calendar, Bell, Calculator, TestTube, Menu } from 'lucide-react';
 
 interface HeaderProps {
-  onViewModeChange?: (mode: 'search' | 'global' | 'calendar' | 'alerts' | 'calculator' | 'validator') => void;
+  onViewModeChange?: (mode: 'search' | 'calendar' | 'alerts' | 'calculator' | 'validator') => void;
   currentMode?: string;
 }
 
 export default function Header({ onViewModeChange, currentMode = 'search' }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleNavClick = (mode: 'search' | 'global' | 'calendar' | 'alerts' | 'calculator' | 'validator') => {
+  const handleNavClick = (mode: 'search' | 'calendar' | 'alerts' | 'calculator' | 'validator') => {
     onViewModeChange?.(mode);
     setIsMobileMenuOpen(false);
   };
@@ -41,17 +41,6 @@ export default function Header({ onViewModeChange, currentMode = 'search' }: Hea
                 >
                   <Search className="h-4 w-4" />
                   <span>検索・比較</span>
-                </button>
-                <button 
-                  onClick={() => handleNavClick('global')}
-                  className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    currentMode === 'global' 
-                      ? 'text-blue-600 bg-blue-50' 
-                      : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
-                >
-                  <Globe className="h-4 w-4" />
-                  <span>グローバルマイル</span>
                 </button>
                 <button 
                   onClick={() => handleNavClick('calendar')}
@@ -136,17 +125,6 @@ export default function Header({ onViewModeChange, currentMode = 'search' }: Hea
               >
                 <Search className="h-4 w-4" />
                 <span>検索・比較</span>
-              </button>
-              <button 
-                onClick={() => handleNavClick('global')}
-                className={`w-full flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  currentMode === 'global' 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-              >
-                <Globe className="h-4 w-4" />
-                <span>グローバルマイル</span>
               </button>
               <button 
                 onClick={() => handleNavClick('calendar')}

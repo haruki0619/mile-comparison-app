@@ -24,6 +24,18 @@
 - **価格アラート**: 希望価格でのプッシュ通知
 - **予約開始日表示**: 各社の特典航空券予約開始日を表示
 
+## 📁 ドキュメント構造
+
+### 🚀 開発者向けガイド
+- **[開発者インデックス](docs/DEVELOPMENT_INDEX.md)** - ドキュメントナビゲーション
+- **[整理計画](docs/DOCS_REORGANIZATION_PLAN.md)** - ドキュメント整理戦略
+
+### 📋 主要ドキュメント
+- **[設計書](docs/01_DESIGN/DESIGN_DOCUMENT.md)** - 包括的設計・型定義・ファクトチェック
+- **[戦略書](docs/02_STRATEGY/PROJECT_STRATEGY.md)** - プロジェクト戦略・ロードマップ
+- **[品質チェックリスト](docs/03_DEVELOPMENT/QUALITY_CHECKLIST.md)** - 品質保証プロセス
+- **[AIプロンプト集](docs/04_DATA_COLLECTION/AI_PROMPTS_FOR_MILE_DATA.md)** - データ収集支援
+
 ## 🏗️ アーキテクチャ
 
 ### フロントエンド

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { SearchResult, AirlineMileInfo, SearchForm } from '../types';
 import { getAirport, calculateBookingStartDate } from '../utils/mileCalculator';
 import MileValueComparison from './MileValueComparison';
+import { BookingButtonFromSearchResult } from './BookingButton';
+import ComprehensiveMileageComparison from './ComprehensiveMileageComparison';
 import { 
   Plane, 
   Calendar, 
@@ -75,8 +77,17 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
     return undefined;
   }, [result]);
   
-  const departureAirport = getAirport(result.route.departure);
-  const arrivalAirport = getAirport(result.route.arrival);
+  // 国内空港コードリスト（日本の主要空港）
+  const domesticAirports = [
+    'HND', 'NRT', 'ITM', 'KIX', 'CTS', 'FUK', 'OKA', 'NGO', 'KOJ', 'KMJ',
+    'SDJ', 'KMQ', 'HIJ', 'TAK', 'MYJ', 'UBJ', 'AOR', 'MMY', 'ISG', 'AOJ'
+  ];
+    const isDomesticRoute = result.route && 
+                          domesticAirports.includes(result.route.departure) &&
+                          domesticAirports.includes(result.route.arrival);
+
+  const departureAirport = result.route ? getAirport(result.route.departure) : null;
+  const arrivalAirport = result.route ? getAirport(result.route.arrival) : null;
 
   console.log('🎯 Airport data:', { departureAirport, arrivalAirport });
 
@@ -123,7 +134,11 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
 
   // 現在のシーズンのマイル数を取得
   const currentMiles = (airlineInfo: AirlineMileInfo) => {
-    return airlineInfo.miles[result.season];
+    if (!airlineInfo?.miles) return 0;
+    const season = 'season' in result ? result.season : 'regular';
+    const seasonMiles = airlineInfo.miles[season as keyof typeof airlineInfo.miles];
+    const regularMiles = airlineInfo.miles.regular;
+    return seasonMiles || regularMiles || 0;
   };
 
   // マイル価値を計算（改善版 - 実際の現金価格を使用）
@@ -148,6 +163,16 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
 
   return (
     <div ref={searchResultsRef} className="space-y-6">
+      {/* 🚨 デバッグ: SearchResults レンダリング確認 */}
+      <div className="p-4 bg-orange-100 border border-orange-300 rounded text-sm">
+        <strong>🚨 SearchResults デバッグ:</strong><br/>
+        <span className="text-gray-700">
+          コンポーネントがレンダリングされました | 
+          航空会社数: {result.airlines?.length || 0} | 
+          現在時刻: {new Date().toLocaleTimeString()}
+        </span>
+      </div>
+      
       {/* 検索モード情報表示 */}
       {lastSearchForm && (
         <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 border border-indigo-200">
@@ -198,14 +223,14 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
               <div>
                 <h2 className="text-lg font-semibold text-white">検索結果</h2>
                 <p className="text-blue-100 text-sm">
-                  {lastSearchForm?.departure || result.route.departure} → {lastSearchForm?.arrival || result.route.arrival}
-                  {(lastSearchForm?.date || result.date) && ` | ${lastSearchForm?.date || result.date}`}
+                  {lastSearchForm?.departure || result.route?.departure || 'N/A'} → {lastSearchForm?.arrival || result.route?.arrival || 'N/A'}
+                  {lastSearchForm?.date && ` | ${lastSearchForm.date}`}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <div className="text-sm text-blue-100">見つかりました</div>
-              <div className="text-xl font-bold text-white">{result.airlines.length}件</div>
+              <div className="text-xl font-bold text-white">{result.airlines?.length || 0}件</div>
             </div>
           </div>
           
@@ -214,14 +239,14 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
             <div className="flex flex-col gap-2">
               <h3 className="text-xl font-bold text-white flex items-center gap-3">
                 <Plane className="w-6 h-6" />
-                {departureAirport?.city} ({result.route.departure}) → {arrivalAirport?.city} ({result.route.arrival})
+                {departureAirport?.city} ({result.route?.departure || 'N/A'}) → {arrivalAirport?.city} ({result.route?.arrival || 'N/A'})
               </h3>
               <div className="flex items-center gap-3">
-                <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getSeasonColor(result.season)}`}>
-                  {getSeasonLabel(result.season)}シーズン
+                <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getSeasonColor(('season' in result && typeof result.season === 'string') ? result.season : 'regular')}`}>
+                  {getSeasonLabel(('season' in result && typeof result.season === 'string') ? result.season : 'regular')}シーズン
                 </span>
                 <span className="text-blue-100">
-                  {result.airlines.length}社の航空会社が見つかりました
+                  {result.airlines?.length || 0}社の航空会社が見つかりました
                 </span>
               </div>
             </div>
@@ -229,8 +254,8 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
             {/* 右側：日付・距離情報 */}
             <div className="flex items-center gap-4 text-blue-100">
               <div className="text-right">
-                <div className="text-lg font-medium">{formatDate(result.date)}</div>
-                <div className="text-sm">{result.route.distance}km</div>
+                <div className="text-lg font-medium">{formatDate(('date' in result && typeof result.date === 'string') ? result.date : new Date().toISOString())}</div>
+                <div className="text-sm">{'distance' in (result.route || {}) ? (result.route as any).distance : 'N/A'}km</div>
               </div>
             </div>
           </div>
@@ -241,7 +266,7 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
       <div className="grid gap-4">
         {/* マイル価値分析コンポーネント */}
         <MileValueComparison result={result} />
-        {result.airlines.map((airline, index) => (
+        {result.airlines?.filter(airline => airline && airline.airline && airline.miles).map((airline, index) => (
           <div key={`${airline.airline}-${index}`} className={`bg-white rounded-xl shadow-lg border overflow-hidden ${getAirlineColor(airline.airline)}`}>
 
             {/* マイル情報バー */}
@@ -304,13 +329,7 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
                     </div>
                   </div>
                   
-                  <a
-                    href="#"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors text-sm"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    予約
-                  </a>
+
                 </div>
               </div>
             </div>
@@ -327,15 +346,15 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">オフ:</span>
-                      <span className="font-medium">{airline.miles.off.toLocaleString()}</span>
+                      <span className="font-medium">{(airline.miles?.off || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">通常:</span>
-                      <span className="font-medium">{airline.miles.regular.toLocaleString()}</span>
+                      <span className="font-medium">{(airline.miles?.regular || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">ピーク:</span>
-                      <span className="font-medium">{airline.miles.peak.toLocaleString()}</span>
+                      <span className="font-medium">{(airline.miles?.peak || 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -350,7 +369,10 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
                     <div className="flex justify-between">
                       <span className="text-gray-600">受付開始:</span>
                       <span className="font-medium text-xs">
-                        {calculateBookingStartDate(result.date, airline.bookingStartDays)}
+                        {airline.bookingStartDays ? 
+                          calculateBookingStartDate(('date' in result && typeof result.date === 'string') ? result.date : new Date().toISOString(), airline.bookingStartDays) 
+                          : '未設定'
+                        }
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -384,7 +406,7 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
                     onClick={() => setSelectedAirline(selectedAirline === airline.airline ? null : airline.airline)}
                     className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors text-sm"
                   >
-                    {selectedAirline === airline.airline ? '閉じる' : '詳細'}
+                    {selectedAirline === airline.airline ? '閉じる' : '予約オプション詳細'}
                   </button>
                   
                   {onCreateAlert && (
@@ -393,7 +415,7 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
                         airline: airline.airline,
                         route: result.route,
                         miles: currentMiles(airline),
-                        date: result.date
+                        date: ('date' in result && typeof result.date === 'string') ? result.date : new Date().toISOString()
                       })}
                       className="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm"
                     >
@@ -406,7 +428,7 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
 
               {/* 詳細表示エリア */}
               {selectedAirline === airline.airline && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg space-y-4">
                   <h5 className="font-semibold mb-2 text-sm">詳細情報</h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
@@ -426,6 +448,33 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
                       </ul>
                     </div>
                   </div>
+
+                  {/* 詳細予約オプション */}
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold text-gray-900 mb-3">詳細予約オプション</h4>
+                    
+                    {/* デバッグ情報 */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="mb-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
+                        <strong>🔧 デバッグ情報:</strong><br/>
+                        <span className="text-gray-600">
+                          航空会社: {airline.airline} | インデックス: {index} | 
+                          マイル: {airline.miles.regular} | 便名: {airline.flightNumber || 'なし'}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <BookingButtonFromSearchResult
+                      result={result}
+                      airlineIndex={index}
+                      passengers={{ adults: 1 }}
+                      onBookingClick={(url, airlineName) => {
+                        console.log(`🔧 予約クリック: ${airlineName} -> ${url}`);
+                        console.log('🔧 SearchResults - BookingButton clicked!');
+                        // アナリティクス等のトラッキング
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -433,11 +482,24 @@ export default function SearchResults({ result, lastSearchForm, onCreateAlert, o
         ))}
       </div>
 
+      {/* 統合マイレージ比較コンポーネント */}
+      <div className="bg-white rounded-xl shadow-lg border p-4 sm:p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">
+          統合マイレージ比較
+        </h3>
+        <ComprehensiveMileageComparison 
+          defaultRoute={result.route ? {
+            departure: result.route.departure,
+            arrival: result.route.arrival
+          } : undefined}
+        />
+      </div>
+
       {/* カレンダー表示ボタン */}
       {onViewCalendar && (
         <div className="text-center">
           <button
-            onClick={() => onViewCalendar(result.date)}
+            onClick={() => onViewCalendar(('date' in result && typeof result.date === 'string') ? result.date : new Date().toISOString())}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
           >
             <Calendar className="w-5 h-5" />

@@ -41,8 +41,9 @@ export default function UnifiedMileComparison({ result, onSelectOption }: Unifie
   const generateMileOptions = (): MileOption[] => {
     const options: MileOption[] = [];
     
-    result.airlines.forEach((airlineInfo, index) => {
-      const miles = airlineInfo.miles[result.season];
+    result.airlines?.forEach((airlineInfo, index) => {
+      const season = 'season' in result && typeof result.season === 'string' ? result.season : 'regular';
+      const miles = airlineInfo.miles[season as keyof typeof airlineInfo.miles] || airlineInfo.miles.regular;
       const cashPrice = airlineInfo.cashPrice || 25000;
       const mileValue = miles > 0 ? cashPrice / miles : 0;
       const savings = cashPrice - (miles * 1.5); // 1マイル=1.5円として計算
@@ -55,7 +56,7 @@ export default function UnifiedMileComparison({ result, onSelectOption }: Unifie
         cashPrice,
         efficiency: Math.max(0, efficiency),
         availability: index === 0 ? 'high' : index === 1 ? 'medium' : 'low',
-        season: result.season,
+        season: season as 'regular' | 'peak' | 'off',
         valuePerMile: mileValue,
         savings: Math.max(0, savings),
         isRecommended: index === 0 // 最初のオプションを推奨とする
@@ -96,11 +97,11 @@ export default function UnifiedMileComparison({ result, onSelectOption }: Unifie
   };
 
   const formatMiles = (miles: number) => {
-    return miles.toLocaleString();
+    return (miles || 0).toLocaleString();
   };
 
   const formatCurrency = (amount: number) => {
-    return `¥${amount.toLocaleString()}`;
+    return `¥${(amount || 0).toLocaleString()}`;
   };
 
   return (
@@ -125,17 +126,17 @@ export default function UnifiedMileComparison({ result, onSelectOption }: Unifie
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-800">{result.route.departure}</div>
+              <div className="text-2xl font-bold text-gray-800">{result.route?.departure || 'N/A'}</div>
               <div className="text-sm text-gray-600">出発</div>
             </div>
             <Plane className="w-5 h-5 text-gray-400 transform rotate-90" />
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-800">{result.route.arrival}</div>
+              <div className="text-2xl font-bold text-gray-800">{result.route?.arrival || 'N/A'}</div>
               <div className="text-sm text-gray-600">到着</div>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-lg font-bold text-blue-600">{result.route.distance}km</div>
+            <div className="text-lg font-bold text-blue-600">{'distance' in (result.route || {}) ? (result.route as any).distance : 'N/A'}km</div>
             <div className="text-sm text-gray-600">距離</div>
           </div>
         </div>
@@ -279,12 +280,12 @@ export default function UnifiedMileComparison({ result, onSelectOption }: Unifie
             <h4 className="font-medium text-blue-800 mb-1">シーズン情報</h4>
             <p className="text-sm text-blue-700">
               現在のシーズン: <strong>
-                {result.season === 'regular' ? 'レギュラーシーズン' : 
-                 result.season === 'peak' ? 'ピークシーズン' : 'オフシーズン'}
+                {(('season' in result && typeof result.season === 'string') ? result.season : 'regular') === 'regular' ? 'レギュラーシーズン' : 
+                 (('season' in result && typeof result.season === 'string') ? result.season : 'regular') === 'peak' ? 'ピークシーズン' : 'オフシーズン'}
               </strong>
             </p>
             <p className="text-sm text-blue-700 mt-1">
-              上記のマイル数は{result.date}の搭乗日におけるシーズン判定に基づいています。
+              上記のマイル数は{('date' in result && typeof result.date === 'string') ? result.date : '指定日'}の搭乗日におけるシーズン判定に基づいています。
             </p>
           </div>
         </div>

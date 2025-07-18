@@ -1,0 +1,418 @@
+// 世界主要マイレージプログラムの型定義
+export interface GlobalMileChart {
+  // 日本系
+  ANA: any; // ANAMileChart;
+  JAL: any; // JALMileChart;
+  
+  // アメリカ系
+  UA: any; // UnitedMileChart;
+  AA: any; // AmericanMileChart;
+  DL: any; // DeltaMileChart;
+  
+  // ヨーロッパ系
+  LH: any; // LufthansaMileChart;
+  BA: any; // BritishAirwaysMileChart;
+  AF: any; // AirFranceMileChart;
+  
+  // アジア系
+  SQ: any; // SingaporeMileChart;
+  CX: any; // CathayMileChart;
+  TG: any; // ThaiMileChart;
+  
+  // 中東系
+  QR: any; // QatarMileChart;
+  EK: any; // EmiratesMileChart;
+}
+
+// ユナイテッド航空のマイルチャート
+export interface UnitedMileChart {
+  alliance: 'StarAlliance';
+  partners: string[];
+  currency: 'USD';
+  
+  domestic: {
+    short: MileOption;  // 700マイル以下
+    medium: MileOption; // 701-2100マイル
+    long: MileOption;   // 2101マイル以上
+  };
+  
+  international: {
+    asia: CabinClassMiles;
+    europe: CabinClassMiles;
+    oceania: CabinClassMiles;
+    africa: CabinClassMiles;
+    south_america: CabinClassMiles;
+  };
+  
+  // UAの特徴的なシステム
+  dynamicPricing: boolean;
+  excursionist: boolean; // エクスカーショニスト特典
+  openJaw: boolean;      // オープンジョー対応
+  stopovers: number;     // ストップオーバー可能数
+}
+
+// マイルオプション（セーバー/スタンダード/ピーク）
+export interface MileOption {
+  saver: number;     // セーバーアワード
+  standard: number;  // スタンダードアワード  
+  peak: number;      // ピーク期間
+  availability: 'high' | 'medium' | 'low';
+}
+
+// 座席クラス別マイル要件
+export interface CabinClassMiles {
+  economy: MileOption;
+  premium_economy?: MileOption;
+  business: MileOption;
+  first?: MileOption;
+}
+
+// アメリカン航空の特徴
+export interface AmericanMileChart {
+  alliance: 'OneWorld';
+  partners: string[];
+  
+  // AAの特徴的システム
+  webSpecial: {
+    discount: number; // ウェブスペシャル割引率
+    availability: string[];
+  };
+  
+  offPeak: {
+    discount: number;
+    months: string[];
+  };
+  
+  peak: {
+    surcharge: number;
+    months: string[];
+  };
+  
+  // 動的価格制導入
+  dynamicPricing: boolean;
+  milesOrPoints: boolean; // マイル+ポイント併用可能
+}
+
+// シンガポール航空の特徴
+export interface SingaporeMileChart {
+  alliance: 'StarAlliance';
+  program: 'KrisFlyer';
+  
+  // SQの特徴的システム
+  spontaneousEscapes: {
+    discount: number; // 直前割引率
+    bookingWindow: number; // 予約可能期間（日前）
+  };
+  
+  advantageAwards: {
+    premiumCabinDiscount: number;
+    eligibility: string[];
+  };
+  
+  // プリファードシート
+  preferredSeats: boolean;
+  waitlist: boolean;
+}
+
+// 統合支払方法比較
+export interface UnifiedPaymentComparison {
+  route: Route;
+  travelDate: string;
+  passengerCount: number;
+  searchTimestamp: string;
+  
+  paymentOptions: {
+    // 現金支払い
+    cash: CashPaymentOption[];
+    
+    // マイル支払い
+    miles: { [airline: string]: MilePaymentOption };
+    
+    // ハイブリッド支払い（マイル+現金）
+    hybrid: any[]; // HybridPaymentOption[];
+    
+    // ポイント移行
+    pointTransfer: PointTransferOption[];
+  };
+  
+  // AI推奨システム
+  recommendation: PaymentRecommendation;
+  
+  // 市場分析
+  marketAnalysis: MarketAnalysis;
+}
+
+// 現金支払いオプション
+export interface CashPaymentOption {
+  airline: string;
+  amount: number;
+  currency: 'JPY' | 'USD' | 'EUR';
+  fareClass: string;
+  refundable: boolean;
+  changeable: boolean;
+  bookingLink: string;
+  priceHistory: PricePoint[];
+  priceAlert: boolean;
+}
+
+// マイル支払いオプション  
+export interface MilePaymentOption {
+  airline: string;
+  required: number;
+  availability: 'available' | 'waitlist' | 'unavailable';
+  bookingClass: string;
+  taxes: number;
+  valuePerMile: number; // 1マイルあたりの円換算価値
+  transferOptions: TransferOption[];
+  bookingWindow: string; // 予約可能期間
+  cancellationPolicy: string;
+  changePolicy: string;
+}
+
+// ポイント移行オプション
+export interface PointTransferOption {
+  creditCardPoints: any[]; // CreditCardTransfer[];
+  bankPoints: any[]; // BankPointTransfer[];
+  hotelPoints: any[]; // HotelPointTransfer[];
+  totalEfficiency: number; // 移行効率スコア
+}
+
+export interface CreditCardTransfer {
+  source: 'AMEX_MR' | 'CHASE_UR' | 'CITI_TYP' | 'CAPITAL_ONE' | 'MARRIOTT' | 'SPG';
+  pointsRequired: number;
+  transferRatio: string; // 例: "1000:1000" or "1000:750"
+  transferTime: string;   // 例: "即座" or "1-3営業日"
+  transferFee: number;
+  targetAirline: string;
+  targetMiles: number;
+  minimumTransfer: number;
+  maximumTransfer: number;
+  promotions: TransferPromotion[];
+}
+
+export interface TransferPromotion {
+  description: string;
+  bonusRatio: string; // 例: "25%ボーナス"
+  validUntil: string;
+  minimumTransfer: number;
+}
+
+// AI推奨システム
+export interface PaymentRecommendation {
+  bestValue: {
+    option: PaymentOption;
+    reasoning: string;
+    savings: number;
+    savingsPercentage: number;
+  };
+  
+  alternatives: {
+    fastest: PaymentOption;
+    mostFlexible: PaymentOption;
+    lowestRisk: PaymentOption;
+  };
+  
+  riskFactors: RiskFactor[];
+  marketTiming: TimingAdvice;
+}
+
+export interface RiskFactor {
+  type: 'availability' | 'price_volatility' | 'transfer_risk' | 'booking_window';
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  mitigation: string;
+}
+
+export interface TimingAdvice {
+  currentTiming: 'optimal' | 'good' | 'poor';
+  bestBookingWindow: string;
+  priceDirection: 'rising' | 'falling' | 'stable';
+  confidence: number; // 0-100%
+}
+
+// リアルタイム監視システム
+export interface RealTimeMonitoring {
+  priceAlerts: any[]; // PriceAlert[];
+  availabilityAlerts: any[]; // AvailabilityAlert[];
+  bookingWindowAlerts: any[]; // BookingWindowAlert[];
+  transferPromotionAlerts: any[]; // TransferPromotionAlert[];
+}
+
+export interface PriceAlert {
+  id: string;
+  route: Route;
+  targetPrice: number;
+  currentPrice: number;
+  priceHistory: PricePoint[];
+  predictedTrend: 'rising' | 'falling' | 'stable';
+  confidence: number;
+  alertTrigger: 'below_target' | 'significant_drop' | 'trend_change';
+  notifications: NotificationSettings;
+}
+
+export interface AvailabilityAlert {
+  id: string;
+  route: Route;
+  targetDates: string[];
+  cabinClass: string;
+  currentAvailability: { [airline: string]: SeatAvailability };
+  waitlistPosition?: number;
+  estimatedWaitTime?: string;
+  notifications: NotificationSettings;
+}
+
+export interface SeatAvailability {
+  economy: number;
+  premium_economy: number;
+  business: number;
+  first: number;
+  lastUpdated: string;
+}
+
+// 価値分析エンジン
+export interface ValueAnalysisEngine {
+  mileValueCalculator: { [airline: string]: MileValueMetrics };
+  redemptionAnalysis: RedemptionAnalysis;
+  historicalData: any; // HistoricalAnalysis;
+  competitiveAnalysis: any; // CompetitiveAnalysis;
+}
+
+export interface MileValueMetrics {
+  averageValue: number;    // 1マイルの平均価値（円）
+  bestCaseValue: number;   // 最高価値（ファーストクラス国際線等）
+  worstCaseValue: number;  // 最低価値（国内線エコノミー等）
+  volatility: number;      // 価値の変動性 (0-1)
+  liquidity: number;       // 利用しやすさ (0-1)
+  transferability: number; // 他社移行可能性 (0-1)
+  expirationRisk: number;  // 有効期限リスク (0-1)
+}
+
+export interface RedemptionAnalysis {
+  route: Route;
+  options: RedemptionOption[];
+  marketComparison: MarketComparison;
+  timing: TimingAnalysis;
+}
+
+export interface RedemptionOption {
+  paymentMethod: string;
+  totalCost: number;
+  mileValue: number;
+  roi: number;              // 投資対効果
+  opportunityCost: number;  // 機会費用
+  recommendationScore: number; // 推奨度スコア (0-100)
+  pros: string[];
+  cons: string[];
+  riskLevel: 'low' | 'medium' | 'high';
+}
+
+
+
+export interface TimePreferences {
+  departureTime: 'morning' | 'afternoon' | 'evening' | 'red_eye' | 'any';
+  maxFlightTime: number; // 時間
+  maxLayoverTime: number; // 時間
+  preferredLayoverAirports: string[];
+}
+
+export interface BudgetConstraints {
+  maxCashAmount?: number;
+  maxMileAmount?: number;
+  preferredPaymentMethods: PaymentMethodPreference[];
+}
+
+export interface PaymentMethodPreference {
+  method: 'cash' | 'miles' | 'hybrid' | 'points_transfer';
+  priority: number; // 1-10
+  constraints?: any;
+}
+
+// 追加の型定義
+export interface Route {
+  departure: string;
+  arrival: string;
+  departureDate: string;
+  returnDate?: string;
+  isRoundTrip: boolean;
+}
+
+export interface PricePoint {
+  date: string;
+  price: number;
+  availability: boolean;
+}
+
+export interface PaymentOption {
+  type: 'cash' | 'miles' | 'hybrid' | 'points_transfer';
+  details: CashPaymentDetails | MilePaymentDetails | HybridPaymentDetails | PointTransferDetails;
+  totalValue: number;
+  efficiency: number;
+}
+
+export interface CashPaymentDetails {
+  refundable: boolean;
+  changeable: boolean;
+  earnMiles: number;
+  estimatedValue: number;
+  savings: number;
+  taxes: number;
+  valuePerMile: number;
+}
+
+export interface MilePaymentDetails {
+  refundable: boolean;
+  changeable: boolean;
+  earnMiles: number;
+  estimatedValue: number;
+  savings: number;
+  taxes: number;
+  valuePerMile: number;
+}
+
+export interface HybridPaymentDetails {
+  refundable: boolean;
+  changeable: boolean;
+  earnMiles: number;
+  estimatedValue: number;
+  savings: number;
+  taxes: number;
+  valuePerMile: number;
+}
+
+export interface PointTransferDetails {
+  refundable: boolean;
+  changeable: boolean;
+  earnMiles: number;
+  transferRatio: number;
+  transferTime: string;
+  resultingMiles: number;
+  savings: number;
+}
+
+export interface NotificationSettings {
+  email: boolean;
+  push: boolean;
+  sms: boolean;
+  frequency: 'immediate' | 'daily' | 'weekly';
+}
+
+export interface TransferOption {
+  source: string;
+  target: string;
+  ratio: string;
+  fee: number;
+  time: string;
+}
+
+export interface MarketAnalysis {
+  competitorPrices: { [source: string]: number };
+  marketPosition: 'below_market' | 'at_market' | 'above_market';
+  seasonality: SeasonalityData;
+  demandLevel: 'low' | 'medium' | 'high';
+}
+
+export interface SeasonalityData {
+  currentSeason: 'low' | 'shoulder' | 'peak';
+  historicalPattern: { month: number; demandLevel: number }[];
+  nextSeasonChange: string;
+}

@@ -5,7 +5,41 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { departure, arrival, date, passengers, returnDate } = await request.json();
+    const body = await request.json();
+    const { departure, arrival, date, passengers, returnDate } = body;
+
+    // リクエストバリデーション
+    if (!departure || !arrival || !date) {
+      return NextResponse.json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '出発地、到着地、出発日は必須です',
+        data: null
+      }, { status: 400 });
+    }
+
+    if (departure === arrival) {
+      return NextResponse.json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '出発地と到着地は異なる空港を選択してください',
+        data: null
+      }, { status: 400 });
+    }
+
+    // 日付バリデーション
+    const departureDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (departureDate < today) {
+      return NextResponse.json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '出発日は今日以降を選択してください',
+        data: null
+      }, { status: 400 });
+    }
 
     console.log('🔍 Server-side API search:', { departure, arrival, date, passengers });
 
@@ -26,6 +60,7 @@ export async function POST(request: NextRequest) {
     // Real API calls (when credentials are available)
     const flights = [];
     const sources = [];
+    const errors = [];
 
     // Amadeus API call (if credentials exist)
     if (process.env.AMADEUS_CLIENT_ID && process.env.AMADEUS_CLIENT_SECRET) {
@@ -39,7 +74,9 @@ export async function POST(request: NextRequest) {
         flights.push(...amadeusResults);
         sources.push('amadeus');
       } catch (error) {
-        console.warn('Amadeus API error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown Amadeus API error';
+        console.warn('Amadeus API error:', errorMessage);
+        errors.push({ source: 'amadeus', error: errorMessage });
       }
     }
 
@@ -55,7 +92,9 @@ export async function POST(request: NextRequest) {
         flights.push(...rakutenResults);
         sources.push('rakuten');
       } catch (error) {
-        console.warn('Rakuten API error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown Rakuten API error';
+        console.warn('Rakuten API error:', errorMessage);
+        errors.push({ source: 'rakuten', error: errorMessage });
       }
     }
 
@@ -67,7 +106,8 @@ export async function POST(request: NextRequest) {
         data: generateServerFallbackData({ departure, arrival, date, passengers }),
         sources: ['fallback'],
         timestamp: new Date().toISOString(),
-        note: 'Real APIs unavailable, using fallback data'
+        note: 'Real APIs unavailable, using fallback data',
+        apiErrors: errors.length > 0 ? errors : undefined
       });
     }
 
@@ -75,26 +115,132 @@ export async function POST(request: NextRequest) {
       success: true,
       data: flights,
       sources,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      apiErrors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error) {
     console.error('API Route Error:', error);
+    
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({
+        success: false,
+        error: 'INVALID_JSON',
+        message: 'リクエストデータの形式が正しくありません',
+        data: null
+      }, { status: 400 });
+    }
+
     return NextResponse.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      success: false,
+      error: 'INTERNAL_SERVER_ERROR',
+      message: 'サーバー内部エラーが発生しました',
+      data: null
     }, { status: 500 });
   }
 }
 
 // Amadeus API call function
 async function callAmadeusAPI(params: any) {
+  const { departure, arrival, date, passengers } = params;
+  
   try {
     console.log('🔍 Calling real Amadeus API...');
     
+    // パラメータバリデーション
+    if (!departure || !arrival || !date) {
+      throw new Error('Amadeus API: Required parameters missing');
+    }
+
     // OAuth 2.0 トークン取得
     const tokenResponse = await fetch('https://test.api.amadeus.com/v1/security/oauth2/token', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: process.env.AMADEUS_CLIENT_ID!,
+        client_secret: process.env.AMADEUS_CLIENT_SECRET!,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      throw new Error(`Amadeus token request failed: ${tokenResponse.status} - ${errorText}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    
+    if (!tokenData.access_token) {
+      throw new Error('Amadeus API: No access token received');
+    }
+
+    // フライト検索API呼び出し
+    const searchUrl = new URL('https://test.api.amadeus.com/v2/shopping/flight-offers');
+    searchUrl.searchParams.set('originLocationCode', departure);
+    searchUrl.searchParams.set('destinationLocationCode', arrival);
+    searchUrl.searchParams.set('departureDate', date);
+    searchUrl.searchParams.set('adults', String(passengers || 1));
+    searchUrl.searchParams.set('max', '10');
+
+    const flightResponse = await fetch(searchUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!flightResponse.ok) {
+      const errorText = await flightResponse.text();
+      throw new Error(`Amadeus flight search failed: ${flightResponse.status} - ${errorText}`);
+    }
+
+    const flightData = await flightResponse.json();
+    
+    if (!flightData.data || !Array.isArray(flightData.data)) {
+      console.warn('Amadeus API: No flight data received');
+      return [];
+    }
+
+    // データ変換処理
+    return flightData.data.map((offer: any) => {
+      try {
+        const firstItinerary = offer.itineraries?.[0];
+        const firstSegment = firstItinerary?.segments?.[0];
+        
+        if (!firstSegment) {
+          console.warn('Amadeus API: Invalid flight segment data');
+          return null;
+        }
+
+        return {
+          id: offer.id || `amadeus-${Date.now()}-${Math.random()}`,
+          airline: firstSegment.carrierCode || 'XX',
+          flightNumber: `${firstSegment.carrierCode || 'XX'}${firstSegment.number || '0000'}`,
+          departure: departure,
+          arrival: arrival,
+          departureTime: firstSegment.departure?.at || date,
+          arrivalTime: firstSegment.arrival?.at || date,
+          price: offer.price?.total ? parseInt(offer.price.total) : 0,
+          currency: offer.price?.currency || 'JPY',
+          duration: firstItinerary?.duration || 'PT2H00M',
+          source: 'amadeus',
+          bookingClass: offer.travelerPricings?.[0]?.fareDetailsBySegment?.[0]?.cabin || 'ECONOMY'
+        };
+      } catch (conversionError) {
+        console.warn('Amadeus API: Data conversion error:', conversionError);
+        return null;
+      }
+    }).filter(Boolean);
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown Amadeus API error';
+    console.error('Amadeus API Error:', errorMessage);
+    throw new Error(`Amadeus API Error: ${errorMessage}`);
+  }
+}
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -188,28 +334,35 @@ async function callAmadeusAPI(params: any) {
 
 // Rakuten API call function  
 async function callRakutenAPI(params: any) {
+  const { departure, arrival, date, passengers } = params;
+  
   try {
     console.log('🔍 Calling real Rakuten Travel API...');
+    
+    // パラメータバリデーション
+    if (!departure || !arrival || !date) {
+      throw new Error('Rakuten API: Required parameters missing');
+    }
+    
     console.log('📋 Rakuten API params:', { 
-      departure: params.departure, 
-      arrival: params.arrival, 
-      date: params.date,
+      departure, 
+      arrival, 
+      date,
       appId: process.env.RAKUTEN_APP_ID ? 'SET' : 'NOT_SET'
     });
     
+    // APIキーチェック
+    if (!process.env.RAKUTEN_APP_ID) {
+      throw new Error('Rakuten API: Application ID not configured');
+    }
+    
     // 楽天トラベルには直接的な航空券検索APIがないため、
     // 旅行関連データを活用した推定価格を提供
-    const isDomestic = ['NRT', 'HND', 'KIX', 'ITM', 'CTS', 'FUK', 'OKA'].includes(params.departure) &&
-                      ['NRT', 'HND', 'KIX', 'ITM', 'CTS', 'FUK', 'OKA'].includes(params.arrival);
+    const isDomestic = ['NRT', 'HND', 'KIX', 'ITM', 'CTS', 'FUK', 'OKA'].includes(departure) &&
+                      ['NRT', 'HND', 'KIX', 'ITM', 'CTS', 'FUK', 'OKA'].includes(arrival);
     
     if (!isDomestic) {
       console.log('📊 Rakuten API: 国際線は対応外、推定データを使用');
-      return generateEnhancedMockData(params, 'rakuten');
-    }
-
-    // APIキーチェック
-    if (!process.env.RAKUTEN_APP_ID) {
-      console.log('⚠️ Rakuten API Key not found, using fallback data');
       return generateEnhancedMockData(params, 'rakuten');
     }
 
@@ -221,14 +374,15 @@ async function callRakutenAPI(params: any) {
       
       console.log('🌐 Rakuten API URL:', areaUrl.toString());
       
-      // AbortControllerでタイムアウト設定
+      // AbortControllerでタイムアウト設定 (10秒)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const areaResponse = await fetch(areaUrl.toString(), {
         method: 'GET',
         headers: {
           'User-Agent': 'MileComparison/1.0',
+          'Accept': 'application/json',
         },
         signal: controller.signal,
       });
@@ -237,30 +391,38 @@ async function callRakutenAPI(params: any) {
 
       console.log('📡 Rakuten API response status:', areaResponse.status);
 
-      if (areaResponse.ok) {
-        const areaData = await areaResponse.json();
-        console.log('✅ Rakuten Area API success, generating enhanced data');
-        
-        // 地域情報を活用してより精度の高い推定データを生成
-        return generateEnhancedMockData(params, 'rakuten', areaData);
-      } else {
+      if (!areaResponse.ok) {
         const errorText = await areaResponse.text();
-        console.log('⚠️ Rakuten Area API failed:', areaResponse.status, errorText);
-        return generateEnhancedMockData(params, 'rakuten');
+        throw new Error(`Rakuten API request failed: ${areaResponse.status} - ${errorText}`);
       }
-    } catch (areaError) {
-      if (areaError.name === 'AbortError') {
-        console.log('⏰ Rakuten API timeout, using fallback data');
-      } else {
-        console.log('⚠️ Rakuten Area API error, using fallback data:', areaError);
+
+      const areaData = await areaResponse.json();
+      
+      if (!areaData) {
+        throw new Error('Rakuten API: No data received');
       }
-      return generateEnhancedMockData(params, 'rakuten');
+      
+      console.log('✅ Rakuten Area API success, generating enhanced data');
+      
+      // 地域情報を活用してより精度の高い推定データを生成
+      return generateEnhancedMockData(params, 'rakuten', areaData);
+
+    } catch (apiError) {
+      if (apiError instanceof Error) {
+        if (apiError.name === 'AbortError') {
+          throw new Error('Rakuten API: Request timeout (10 seconds)');
+        }
+        throw new Error(`Rakuten API: ${apiError.message}`);
+      }
+      throw new Error('Rakuten API: Unknown error during request');
     }
 
   } catch (error) {
-    console.error('❌ Rakuten API error:', error);
-    // Fallback to enhanced mock data
-    return generateEnhancedMockData(params, 'rakuten');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown Rakuten API error';
+    console.error('Rakuten API Error:', errorMessage);
+    
+    // フォールバックデータを返すのではなく、エラーを再投げ
+    throw new Error(`Rakuten API Error: ${errorMessage}`);
   }
 }
 

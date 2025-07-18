@@ -1,6 +1,121 @@
-import { MileRequirement } from '../types';
+// 国際線専用マイレージプログラムデータ
+// ファクトチェック根拠: 各航空会社公式サイト
 
-// 国際線空港データ
+import { MileRequirement, MileOption, CabinClassMiles } from '../types';
+
+// 国際線対応航空会社型
+export type InternationalAirlineCode = 
+  | 'ANA' | 'JAL'     // 日本系
+  | 'UA' | 'AA' | 'DL' // 米国系
+  | 'LH' | 'BA' | 'AF' // 欧州系
+  | 'SQ' | 'CX' | 'TG' // アジア系
+  | 'QR' | 'EK'       // 中東系
+  | 'AC' | 'NZ' | 'SA'; // その他
+
+// 国際線地域分類
+export type InternationalRegion = 
+  | 'asia_short'        // アジア短距離（韓国・台湾・香港等）
+  | 'asia_medium'       // アジア中距離（東南アジア・中国等）
+  | 'north_america'     // 北米
+  | 'europe'           // ヨーロッパ
+  | 'oceania'          // オセアニア
+  | 'africa'           // アフリカ
+  | 'south_america'    // 南米
+  | 'middle_east';     // 中東
+
+// 国際線専用マイルチャート構造
+export interface InternationalMileChart {
+  airlineCode: InternationalAirlineCode;
+  airlineName: string;
+  program: string;
+  alliance?: string;
+  
+  // 地域別・クラス別マイル数
+  regions: {
+    [K in InternationalRegion]?: CabinClassMiles;
+  };
+  
+  // 国際線特有の特徴
+  internationalFeatures: {
+    stopoverAllowed?: boolean;        // ストップオーバー可能
+    openJawAllowed?: boolean;         // オープンジョー可能
+    upgradeAwards?: boolean;          // アップグレード特典
+    oneWayBooking?: boolean;          // 片道予約対応
+    multiCityBooking?: boolean;       // 複数都市予約
+    partnerBooking?: boolean;         // パートナー航空会社予約
+    fuelSurchargeRequired?: boolean;  // 燃油サーチャージ必須
+    taxesIncluded?: boolean;          // 諸税込み表示
+  };
+  
+  // 予約・発券情報
+  bookingInfo: {
+    advanceBookingDays: number;       // 予約開始日数
+    bookingCutoffHours: number;       // 予約締切時間
+    waitlistAvailable?: boolean;      // キャンセル待ち可能
+    seatAvailability?: 'good' | 'limited' | 'poor';
+  };
+  
+  // 公式情報源
+  officialSource: {
+    url: string;
+    lastUpdated: string;
+    verified: boolean;
+  };
+}
+
+// 国際線主要空港データ（出発地優先）
+export const internationalMajorAirports = [
+  // 日本の国際空港
+  { code: 'NRT', name: '東京(成田)', region: '日本', priority: 1, international: true },
+  { code: 'HND', name: '東京(羽田)', region: '日本', priority: 2, international: true },
+  { code: 'KIX', name: '大阪(関西)', region: '日本', priority: 3, international: true },
+  { code: 'NGO', name: '名古屋(中部)', region: '日本', priority: 4, international: true },
+  { code: 'CTS', name: '札幌(新千歳)', region: '日本', priority: 5, international: true },
+  { code: 'FUK', name: '福岡', region: '日本', priority: 6, international: true },
+  
+  // アジア主要空港
+  { code: 'ICN', name: 'ソウル(仁川)', region: 'アジア', priority: 7, international: true },
+  { code: 'TPE', name: '台北(桃園)', region: 'アジア', priority: 8, international: true },
+  { code: 'HKG', name: '香港', region: 'アジア', priority: 9, international: true },
+  { code: 'SIN', name: 'シンガポール', region: 'アジア', priority: 10, international: true },
+  
+  // 北米主要空港
+  { code: 'LAX', name: 'ロサンゼルス', region: '北米', priority: 11, international: true },
+  { code: 'SFO', name: 'サンフランシスコ', region: '北米', priority: 12, international: true },
+  { code: 'JFK', name: 'ニューヨーク(JFK)', region: '北米', priority: 13, international: true },
+  { code: 'YVR', name: 'バンクーバー', region: '北米', priority: 14, international: true },
+  
+  // ヨーロッパ主要空港
+  { code: 'LHR', name: 'ロンドン(ヒースロー)', region: 'ヨーロッパ', priority: 15, international: true },
+  { code: 'CDG', name: 'パリ(シャルル・ド・ゴール)', region: 'ヨーロッパ', priority: 16, international: true },
+  { code: 'FRA', name: 'フランクフルト', region: 'ヨーロッパ', priority: 17, international: true }
+];
+
+// 地域別空港グループ（国際線）
+export const internationalAirportsByRegion = {
+  'アジア短距離': {
+    countries: ['韓国', '台湾', '香港', 'マカオ'],
+    airports: ['ICN', 'GMP', 'TPE', 'TSA', 'HKG', 'MFM']
+  },
+  'アジア中・長距離': {
+    countries: ['中国', '東南アジア', 'インド', 'オセアニア'],
+    airports: ['PEK', 'SHA', 'SIN', 'BKK', 'KUL', 'DEL', 'SYD', 'MEL']
+  },
+  '北米': {
+    countries: ['米国', 'カナダ'],
+    airports: ['LAX', 'SFO', 'JFK', 'ORD', 'YVR', 'YYZ']
+  },
+  'ヨーロッパ': {
+    countries: ['英国', 'フランス', 'ドイツ', 'その他'],
+    airports: ['LHR', 'CDG', 'FRA', 'AMS', 'ZUR', 'FCO']
+  },
+  '中東・アフリカ': {
+    countries: ['UAE', 'カタール', '南アフリカ'],
+    airports: ['DXB', 'DOH', 'JNB']
+  }
+};
+
+// 既存の国際線空港データ（後方互換性のため維持）
 export const internationalAirports = [
   // 北米
   { code: 'LAX', name: 'ロサンゼルス国際空港', city: 'ロサンゼルス', country: 'アメリカ', region: 'North America' },
@@ -178,96 +293,158 @@ export const otherAirlinesMileChart: { [airline: string]: { [key: string]: MileR
   },
 };
 
-// ゾーン判定関数
-export function getInternationalZone(departureCode: string, arrivalCode: string): string {
-  const route = internationalRoutes.find(r => 
-    (r.departure === departureCode && r.arrival === arrivalCode) ||
-    (r.departure === arrivalCode && r.arrival === departureCode)
-  );
-  
-  if (!route) return 'Unknown';
-  
-  const airport = internationalAirports.find(a => 
-    a.code === arrivalCode || a.code === departureCode
-  );
-  
-  if (!airport) return 'Unknown';
-  
-  // 特定の空港コードに基づく詳細ゾーン判定
-  switch (airport.code) {
-    case 'ICN':
-      return 'Korea';
-    case 'TPE':
-      return 'East_Asia_Taiwan';
-    case 'HKG':
-      return 'East_Asia_HongKong';
-    case 'BKK':
-      return 'Southeast_Asia_Thailand';
-    case 'SIN':
-    case 'KUL':
-      return 'Southeast_Asia_Singapore';
-    case 'LAX':
-    case 'JFK':
-    case 'SFO':
-    case 'YVR':
-      return 'North_America';
-    case 'LHR':
-    case 'CDG':
-    case 'FRA':
-    case 'AMS':
-      return 'Europe';
-    case 'SYD':
-    case 'MEL':
-      return 'Oceania';
-    default:
-      // 地域ベースのフォールバック
-      switch (airport.region) {
-        case 'Asia':
-          if (route.distance < 2000) return 'East_Asia';
-          return 'Southeast_Asia';
-        case 'North America':
-          return 'North_America';
-        case 'Europe':
-          return 'Europe';
-        case 'Oceania':
-          return 'Oceania';
-        default:
-          return 'Unknown';
-      }
+// ANA国際線マイルチャート
+export const anaInternationalChart: InternationalMileChart = {
+  airlineCode: 'ANA',
+  airlineName: '全日本空輸',
+  program: 'ANAマイレージクラブ',
+  alliance: 'Star Alliance',
+  regions: {
+    asia_short: {
+      economy: { saver: 12000, standard: 17000, peak: 20000, availability: 'medium' },
+      business: { saver: 24000, standard: 35000, peak: 40000, availability: 'low' }
+    },
+    asia_medium: {
+      economy: { saver: 17000, standard: 30000, peak: 35000, availability: 'medium' },
+      business: { saver: 35000, standard: 60000, peak: 68000, availability: 'low' }
+    },
+    north_america: {
+      economy: { saver: 40000, standard: 50000, peak: 55000, availability: 'low' },
+      business: { saver: 75000, standard: 85000, peak: 90000, availability: 'low' },
+      first: { saver: 120000, standard: 150000, peak: 165000, availability: 'low' }
+    },
+    europe: {
+      economy: { saver: 45000, standard: 55000, peak: 60000, availability: 'low' },
+      business: { saver: 80000, standard: 90000, peak: 95000, availability: 'low' },
+      first: { saver: 135000, standard: 165000, peak: 180000, availability: 'low' }
+    }
+  },
+  internationalFeatures: {
+    stopoverAllowed: true,
+    openJawAllowed: true,
+    upgradeAwards: true,
+    oneWayBooking: true,
+    multiCityBooking: true,
+    partnerBooking: true,
+    fuelSurchargeRequired: false,
+    taxesIncluded: false
+  },
+  bookingInfo: {
+    advanceBookingDays: 355,
+    bookingCutoffHours: 24,
+    waitlistAvailable: true,
+    seatAvailability: 'limited'
+  },
+  officialSource: {
+    url: 'https://www.ana.co.jp/ja/jp/amc/reference/international/',
+    lastUpdated: '2025-01-17',
+    verified: true
   }
-}
+};
 
-// 国際線マイル取得関数
-export function getInternationalMiles(
-  airline: string, 
-  departureCode: string, 
-  arrivalCode: string, 
-  season: 'off' | 'regular' | 'peak'
-): MileRequirement | null {
-  const zone = getInternationalZone(departureCode, arrivalCode);
-  
-  if (zone === 'Unknown') return null;
-  
-  if (airline === 'ANA' && anaInternationalMileChart[zone]) {
-    return anaInternationalMileChart[zone];
+// JAL国際線マイルチャート
+export const jalInternationalChart: InternationalMileChart = {
+  airlineCode: 'JAL',
+  airlineName: '日本航空',
+  program: 'JALマイレージバンク',
+  alliance: 'oneworld',
+  regions: {
+    asia_short: {
+      economy: { saver: 15000, standard: 20000, peak: 23000, availability: 'medium' },
+      business: { saver: 30000, standard: 40000, peak: 43000, availability: 'low' }
+    },
+    asia_medium: {
+      economy: { saver: 20000, standard: 35000, peak: 40000, availability: 'medium' },
+      business: { saver: 40000, standard: 70000, peak: 75000, availability: 'low' }
+    },
+    north_america: {
+      economy: { saver: 50000, standard: 60000, peak: 65000, availability: 'low' },
+      business: { saver: 100000, standard: 120000, peak: 125000, availability: 'low' },
+      first: { saver: 140000, standard: 180000, peak: 190000, availability: 'low' }
+    },
+    europe: {
+      economy: { saver: 52000, standard: 65000, peak: 70000, availability: 'low' },
+      business: { saver: 110000, standard: 130000, peak: 135000, availability: 'low' },
+      first: { saver: 160000, standard: 200000, peak: 210000, availability: 'low' }
+    }
+  },
+  internationalFeatures: {
+    stopoverAllowed: true,
+    openJawAllowed: true,
+    upgradeAwards: true,
+    oneWayBooking: true,
+    multiCityBooking: false,
+    partnerBooking: true,
+    fuelSurchargeRequired: true,
+    taxesIncluded: false
+  },
+  bookingInfo: {
+    advanceBookingDays: 330,
+    bookingCutoffHours: 24,
+    waitlistAvailable: true,
+    seatAvailability: 'limited'
+  },
+  officialSource: {
+    url: 'https://www.jal.co.jp/jmb/use/award/int/',
+    lastUpdated: '2025-01-17',
+    verified: true
   }
+};
+
+// 全国際線チャートを統合
+export const internationalMileCharts = {
+  ANA: anaInternationalChart,
+  JAL: jalInternationalChart
+};
+
+// 地域判定関数
+export const getInternationalRegion = (destination: string): InternationalRegion => {
+  const asiaShort = ['ICN', 'GMP', 'TPE', 'TSA', 'HKG', 'MFM'];
+  const asiaMedium = ['PEK', 'SHA', 'SIN', 'BKK', 'KUL', 'DEL', 'SYD', 'MEL'];
+  const northAmerica = ['LAX', 'SFO', 'JFK', 'ORD', 'YVR', 'YYZ'];
+  const europe = ['LHR', 'CDG', 'FRA', 'AMS', 'ZUR', 'FCO'];
+  const middleEast = ['DXB', 'DOH'];
   
-  if (airline === 'JAL' && jalInternationalMileChart[zone]) {
-    return jalInternationalMileChart[zone];
-  }
+  if (asiaShort.includes(destination)) return 'asia_short';
+  if (asiaMedium.includes(destination)) return 'asia_medium';
+  if (northAmerica.includes(destination)) return 'north_america';
+  if (europe.includes(destination)) return 'europe';
+  if (middleEast.includes(destination)) return 'middle_east';
   
-  return null;
-}
+  return 'asia_medium'; // デフォルト
+};
 
 // 燃油サーチャージ取得関数
-export function getFuelSurcharge(
-  airline: string,
-  departureCode: string, 
-  arrivalCode: string
-): number {
-  const zone = getInternationalZone(departureCode, arrivalCode);
+export const getFuelSurcharge = (airline: string, departure: string, arrival: string): number => {
+  // 国内線は燃油サーチャージなし
+  const domesticAirports = ['HND', 'NRT', 'KIX', 'ITM', 'CTS', 'FUK', 'OKA', 'NGO', 'SDJ'];
+  if (domesticAirports.includes(departure) && domesticAirports.includes(arrival)) {
+    return 0;
+  }
   
-  if (zone === 'Unknown') return 0;
+  // 地域判定
+  const region = getInternationalRegion(arrival);
+  let zone = '';
+  
+  switch (region) {
+    case 'asia_short':
+      zone = 'East_Asia_Zone1';
+      break;
+    case 'asia_medium':
+      zone = 'Southeast_Asia';
+      break;
+    case 'north_america':
+      zone = 'North_America';
+      break;
+    case 'europe':
+      zone = 'Europe';
+      break;
+    case 'oceania':
+      zone = 'Southwest_Pacific';
+      break;
+    default:
+      zone = 'East_Asia_Zone1';
+  }
   
   if (airline === 'ANA' && fuelSurcharge.ANA[zone as keyof typeof fuelSurcharge.ANA]) {
     return fuelSurcharge.ANA[zone as keyof typeof fuelSurcharge.ANA];
@@ -283,4 +460,26 @@ export function getFuelSurcharge(
   }
   
   return 0;
-}
+};
+
+// 国際線マイル数取得関数（新しい構造用）
+export const getInternationalMiles = (airline: string, departure: string, arrival: string, season: string): number => {
+  const region = getInternationalRegion(arrival);
+  const airlineChart = internationalMileCharts[airline as keyof typeof internationalMileCharts];
+  
+  if (!airlineChart || !airlineChart.regions[region]) {
+    return 0;
+  }
+  
+  const regionMiles = airlineChart.regions[region]?.economy;
+  if (!regionMiles) return 0;
+  
+  switch (season) {
+    case 'peak':
+      return regionMiles.peak || regionMiles.standard;
+    case 'off':
+      return regionMiles.saver || regionMiles.standard;
+    default:
+      return regionMiles.standard;
+  }
+};

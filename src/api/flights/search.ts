@@ -28,28 +28,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 並行してAPIを呼び出し
     const [amadeusResults, rakutenResults] = await Promise.allSettled([
       amadeusClient.searchFlights({
-        originLocationCode: departure,
-        destinationLocationCode: arrival,
+        departure,
+        arrival,
         departureDate: date,
-        adults: passengers,
-        currencyCode: 'JPY'
+        passengers: { adults: passengers },
+        cabinClass: 'economy',
+        currency: 'JPY'
       }),
       rakutenClient.search({
         route: { departure, arrival },
-        date,
+        departureDate: date,
         passengers,
         cabinClass: 'economy'
       })
     ]);
 
     // 結果をマージして返す
-    const flights = [];
+    const flights: any[] = [];
     
-    if (amadeusResults.status === 'fulfilled') {
+    if (amadeusResults.status === 'fulfilled' && amadeusResults.value.data) {
       flights.push(...amadeusResults.value.data);
     }
     
-    if (rakutenResults.status === 'fulfilled') {
+    if (rakutenResults.status === 'fulfilled' && rakutenResults.value.data) {
       flights.push(...rakutenResults.value.data);
     }
 

@@ -1,4 +1,4 @@
-import { GlobalMileChart, UnitedMileChart, AmericanMileChart, SingaporeMileChart } from '../types/globalMiles';
+import { GlobalMileChart, UnitedMileChart, AmericanMileChart, SingaporeMileChart } from '../types';
 
 // ユナイテッド航空のマイルチャート
 export const UNITED_MILES: UnitedMileChart = {

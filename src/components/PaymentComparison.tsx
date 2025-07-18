@@ -99,7 +99,8 @@ export default function PaymentComparison({ route, passengers, cabinClass }: Pay
         if ((routeData as any)[transfer.airline]?.[cabinClass]) {
           const requiredMiles = (routeData as any)[transfer.airline][cabinClass] * passengers;
           const [pointsIn, milesOut] = transfer.ratio.split(':').map(Number);
-          const requiredPoints = Math.ceil((requiredMiles * pointsIn) / milesOut);
+          if (pointsIn && milesOut && !isNaN(pointsIn) && !isNaN(milesOut)) {
+            const requiredPoints = Math.ceil((requiredMiles * pointsIn) / milesOut);
           
           // ボーナスポイント計算（Marriott Bonvoyの場合）
           let finalMiles = requiredMiles;
@@ -132,15 +133,15 @@ export default function PaymentComparison({ route, passengers, cabinClass }: Pay
             details: {
               refundable: false,
               changeable: false,
-              earnMiles: 0,
-              transferRatio: parseFloat(transfer.ratio.split(':')[1]),
-              transferTime: transfer.time,
-              resultingMiles: finalMiles,
-              savings
-            },
-            efficiency,
-            availability: 'available'
-          });
+              earnMiles: 0,            transferRatio: parseFloat(transfer.ratio.split(':')[1] || '1'),
+            transferTime: transfer.time,
+            resultingMiles: finalMiles,
+            savings
+          },
+          efficiency,
+          availability: 'available'
+        });
+          }
         }
       });
     });
@@ -210,15 +211,15 @@ export default function PaymentComparison({ route, passengers, cabinClass }: Pay
           <div className="bg-white rounded-lg p-4 border border-green-200">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium text-gray-900">{paymentOptions[0].title}</h4>
-                <p className="text-sm text-gray-600">{paymentOptions[0].description}</p>
+                <h4 className="font-medium text-gray-900">{paymentOptions[0]?.title}</h4>
+                <p className="text-sm text-gray-600">{paymentOptions[0]?.description}</p>
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold text-gray-900">
-                  {paymentOptions[0].amount.toLocaleString()} {paymentOptions[0].currency}
+                  {paymentOptions[0]?.amount.toLocaleString()} {paymentOptions[0]?.currency}
                 </div>
                 <div className="text-sm text-green-600 font-medium">
-                  効率性: {paymentOptions[0].efficiency}%
+                  効率性: {paymentOptions[0]?.efficiency}%
                 </div>
               </div>
             </div>
@@ -371,8 +372,41 @@ export default function PaymentComparison({ route, passengers, cabinClass }: Pay
             <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
               価格アラートを設定
             </button>
-            <button className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
-              予約サイトへ移動
+            <button 
+              onClick={() => {
+                // 最推奨オプションの航空会社を特定
+                const bestOption = paymentOptions[0];
+                let airlineCode = '';
+                
+                if (bestOption && bestOption.type === 'miles') {
+                  airlineCode = bestOption.id.replace('miles_', '');
+                } else if (bestOption && bestOption.type === 'transfer') {
+                  const parts = bestOption.id.split('_');
+                  airlineCode = parts[parts.length - 1] || '';
+                }
+                
+                // 航空会社公式サイトURL
+                const getAirlineOfficialUrl = (code: string): string => {
+                  const urlMap: Record<string, string> = {
+                    'ANA': 'https://www.ana.co.jp/',
+                    'JAL': 'https://www.jal.co.jp/',
+                    'SKY': 'https://www.skymark.co.jp/',
+                    'NU': 'https://www.solaseedair.jp/',
+                    'MM': 'https://www.flypeach.com/jp',
+                    'GK': 'https://www.jetstar.com/jp/ja/home'
+                  };
+                  return urlMap[code] || 'https://www.google.com/search?q=航空券+予約+サイト';
+                };
+                
+                const officialUrl = getAirlineOfficialUrl(airlineCode);
+                window.open(officialUrl, '_blank', 'noopener,noreferrer');
+              }}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+            >
+              {paymentOptions.length > 0 && paymentOptions[0] && paymentOptions[0].type === 'miles' 
+                ? `${paymentOptions[0].id.replace('miles_', '')}公式サイトで予約`
+                : '公式サイトで予約'
+              }
             </button>
             <button className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
               詳細分析を表示

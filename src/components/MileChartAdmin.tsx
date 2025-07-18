@@ -57,10 +57,10 @@ export default function MileChartAdmin({ isAdmin = false }: MileChartAdminProps)
       effectiveDate: newUpdate.effectiveDate,
       description: newUpdate.description,
       impactedRoutes: newUpdate.impactedRoutes.split(',').map(r => r.trim()),
-      averageIncrease: newUpdate.averageIncrease || undefined,
+      ...(newUpdate.averageIncrease ? { averageIncrease: newUpdate.averageIncrease } : {}),
       announcement: {
         date: newUpdate.announcementDate,
-        url: newUpdate.announcementUrl || undefined,
+        ...(newUpdate.announcementUrl ? { url: newUpdate.announcementUrl } : {}),
         summary: newUpdate.summary
       }
     };

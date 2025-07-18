@@ -144,13 +144,14 @@ export const MILE_PROGRAMS: MileProgram[] = [
 export const PASSENGER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 // タブタイプ
-export type TabType = 'search' | 'global' | 'calendar' | 'alerts' | 'calculator' | 'validator' | 'transfer' | 'casestudy';
+export type TabType = 'search' | 'calendar' | 'alerts' | 'calculator' | 'validator' | 'transfer' | 'casestudy';
 
 export const TABS = [
   { id: 'search', label: '検索・比較', icon: 'Plane' },
-  { id: 'global', label: 'グローバルマイル', icon: 'Globe' },
   { id: 'calendar', label: '価格カレンダー', icon: 'Calendar' },
   { id: 'alerts', label: '価格アラート', icon: 'Bell' },
   { id: 'calculator', label: '価値計算機', icon: 'Calculator' },
+  { id: 'transfer', label: '転送計算機', icon: 'ArrowRightLeft' },
+  { id: 'casestudy', label: 'ケーススタディ', icon: 'BookOpen' },
   { id: 'validator', label: 'データ検証', icon: 'TestTube' }
 ] as const;

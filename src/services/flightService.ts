@@ -1,4 +1,5 @@
 import { SearchForm, SearchResult } from '../types';
+import { RouteData } from '../types/core';
 import { calculateMiles, getBookingStartDays } from '../utils/mileCalculator';
 import { getSeason } from '../data';
 import { 
@@ -164,6 +165,15 @@ function normalizeAirlineForMileCalculation(airlineName: string): any {
 // 航空券検索関数（Next.js API Route経由でリアルAPI統合）
 export async function searchFlights(form: SearchForm): Promise<SearchResult> {
   try {
+    // フォームバリデーション
+    if (!form.departure || !form.arrival || !form.date) {
+      throw new Error('検索には出発地、到着地、出発日が必要です');
+    }
+
+    if (form.departure === form.arrival) {
+      throw new Error('出発地と到着地は異なる空港を選択してください');
+    }
+
     console.log('🔍 航空券検索開始 (Advanced Mode):', {
       route: `${form.departure}-${form.arrival}`,
       date: form.date,
@@ -175,40 +185,78 @@ export async function searchFlights(form: SearchForm): Promise<SearchResult> {
     });
     
     // Next.js API Routeを呼び出し
-    const response = await fetch('/api/flights/search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        departure: form.departure,
-        arrival: form.arrival,
-        date: form.date,
-        passengers: form.passengers || 1,
-        returnDate: form.returnDate
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒タイムアウト
 
-    if (!response.ok) {
-      console.warn('⚠️ API Route呼び出し失敗。フォールバックデータを使用');
-      return generateFallbackData(form);
+    try {
+      const response = await fetch('/api/flights/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          departure: form.departure,
+          arrival: form.arrival,
+          date: form.date,
+          passengers: form.passengers || 1,
+          returnDate: form.returnDate
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 400) {
+          throw new Error(errorData.message || 'リクエストデータが無効です');
+        } else if (response.status === 500) {
+          throw new Error(errorData.message || 'サーバーエラーが発生しました');
+        } else {
+          throw new Error(`API呼び出しエラー: ${response.status}`);
+        }
+      }
+
+      const apiResponse = await response.json();
+      
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.message || 'APIからエラーレスポンスを受信しました');
+      }
+      
+      console.log('📡 API Response received:', {
+        success: apiResponse.success,
+        dataLength: apiResponse.data?.length || 0,
+        sources: apiResponse.sources,
+        note: apiResponse.note,
+        apiErrors: apiResponse.apiErrors
+      });
+      
+      if (!apiResponse.data || apiResponse.data.length === 0) {
+        console.warn('⚠️ API検索結果が空。フォールバックデータを使用');
+        return generateFallbackData(form);
+      }
+
+      console.log(`✅ API検索成功: ${apiResponse.data.length}件の結果を取得 (${apiResponse.sources.join(', ')})`);
+      
+      // APIエラーがあった場合は警告ログ
+      if (apiResponse.apiErrors && apiResponse.apiErrors.length > 0) {
+        console.warn('⚠️ 一部のAPIでエラーが発生:', apiResponse.apiErrors);
+      }
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError instanceof Error) {
+        if (fetchError.name === 'AbortError') {
+          throw new Error('API呼び出しがタイムアウトしました（30秒）');
+        }
+        // フェッチエラーを再投げ
+        throw fetchError;
+      }
+      
+      throw new Error('ネットワークエラーが発生しました');
     }
-
-    const apiResponse = await response.json();
-    console.log('📡 API Response received:', {
-      success: apiResponse.success,
-      dataLength: apiResponse.data?.length || 0,
-      sources: apiResponse.sources,
-      note: apiResponse.note
-    });
-    
-    if (!apiResponse.success || !apiResponse.data || apiResponse.data.length === 0) {
-      console.warn('⚠️ API検索結果が空。フォールバックデータを使用');
-      return generateFallbackData(form);
-    }
-
-    console.log(`✅ API検索成功: ${apiResponse.data.length}件の結果を取得 (${apiResponse.sources.join(', ')})`);
-    console.log('📋 Raw API data:', apiResponse.data);
 
     // 重複チェック（時間帯表示オプションに応じて）
     let processedData = form.showAllTimeSlots 
@@ -399,6 +447,8 @@ export async function searchFlights(form: SearchForm): Promise<SearchResult> {
     });
 
     return {
+      flights: [], // 実際のフライトデータがある場合はここに追加
+      total: airlines.length,
       route: {
         departure: form.departure,
         arrival: form.arrival,
@@ -410,7 +460,23 @@ export async function searchFlights(form: SearchForm): Promise<SearchResult> {
     };
 
   } catch (error) {
-    console.error('❌ API検索エラー:', error);
+    console.error('❌ フライト検索エラー:', error);
+    
+    // エラーの種類に応じた適切な処理
+    if (error instanceof Error) {
+      // バリデーションエラーの場合は、ユーザーに分かりやすいメッセージで再投げ
+      if (error.message.includes('出発地') || 
+          error.message.includes('到着地') || 
+          error.message.includes('出発日') ||
+          error.message.includes('タイムアウト') ||
+          error.message.includes('リクエストデータ') ||
+          error.message.includes('サーバーエラー')) {
+        throw error;
+      }
+    }
+    
+    // その他のエラーの場合は、フォールバックデータを返す
+    console.log('🔄 フォールバックデータを使用します');
     return generateFallbackData(form);
   }
 }
@@ -799,6 +865,8 @@ function generateFallbackData(form: SearchForm): SearchResult {
   const estimatedDistance = getEstimatedDistance(form.departure, form.arrival);
   
   return {
+    flights: [], // 実際のフライトデータがある場合はここに追加
+    total: 3, // 下記のairlines配列の長さ
     route: {
       departure: form.departure,
       arrival: form.arrival,

@@ -11,9 +11,9 @@ import MileDataValidator from '../components/MileDataValidator';
 import SearchForm from '../components/SearchForm';
 import EnhancedSearchForm from '../components/EnhancedSearchForm';
 import AdvancedSearchForm from '../components/AdvancedSearchForm';
+import { UnifiedSearchForm } from '../components/ui/UnifiedSearchForm';
 import SearchResults from '../components/SearchResults';
 import PaymentComparison from '../components/PaymentComparison';
-import GlobalMileComparison from '../components/GlobalMileComparison';
 import UnifiedMileComparison from '../components/UnifiedMileComparison';
 import PriceCalendar from '../components/PriceCalendar';
 import PriceAlert from '../components/PriceAlert';
@@ -21,32 +21,66 @@ import ValueCalculator from '../components/ValueCalculator';
 import MileTransferCalculator from '../components/MileTransferCalculator';
 import TransferCaseStudy from '../components/TransferCaseStudy';
 
-// Types and services
-import { SearchForm as SearchFormType, SearchResult } from '../types';
+// Types and services  
 import { searchFlights } from '../services/flightService';
+
+// 簡素化された型定義（UnifiedSearchFormとの互換性のため拡張）
+interface SearchFormType {
+  departure: string;
+  arrival: string;
+  date: string;
+  passengers: number;
+  flightType?: 'domestic' | 'international';
+  cabinClass?: 'economy' | 'premium_economy' | 'business' | 'first';
+  isRoundTrip?: boolean;
+  returnDate?: string;
+  mileageProgram?: string; // ファクトチェック: 設計書「型定義」準拠
+}
+
+interface SearchResult {
+  flights: any[];
+  total: number;
+  route?: {
+    departure: string;
+    arrival: string;
+  };
+  airlines?: any[];
+}
 
 export default function Home() {
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'search' | 'global' | 'calendar' | 'alerts' | 'calculator' | 'validator' | 'transfer' | 'casestudy'>('search');
-  
+  const [viewMode, setViewMode] = useState<'search' | 'calendar' | 'alerts' | 'calculator' | 'validator' | 'transfer' | 'casestudy'>('search');
   // 検索条件の永続化
   const [lastSearchForm, setLastSearchForm] = useState<SearchFormType | null>(null);
-  
   // アラート登録用の選択されたオファー（ポップアップ制御用）
   const [selectedOfferForAlert, setSelectedOfferForAlert] = useState<any>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
 
-  const handleSearch = async (form: SearchFormType) => {
+  const handleSearch = async (form: SearchFormType | any) => {
     console.log('🔍 Search initiated:', form);
     setIsLoading(true);
     setError(null);
-    setLastSearchForm(form); // 検索条件を保存
+    
+    // UnifiedSearchFormのデータをSearchFormTypeに変換
+    const searchForm: SearchFormType = {
+      departure: form.departure,
+      arrival: form.arrival,
+      date: form.departureDate || form.date,
+      passengers: form.passengerCount || form.passengers || 1,
+      flightType: form.flightType,
+      cabinClass: form.cabinClass,
+      isRoundTrip: form.isRoundTrip,
+      returnDate: form.returnDate,
+      mileageProgram: form.mileageProgram // 詳細検索タブで選択された場合
+    };
+    
+    setLastSearchForm(searchForm); // 検索条件を保存
     
     try {
       console.log('🔍 Calling searchFlights...');
-      const result = await searchFlights(form);
+      const result = await searchFlights(searchForm);
       console.log('✅ Search completed:', result);
       setSearchResult(result);
     } catch (err) {
@@ -86,7 +120,7 @@ export default function Home() {
   };
 
   // ビューモード切り替えハンドラー
-  const handleViewModeChange = (mode: 'search' | 'global' | 'calendar' | 'alerts' | 'calculator' | 'validator' | 'transfer' | 'casestudy') => {
+  const handleViewModeChange = (mode: 'search' | 'calendar' | 'alerts' | 'calculator' | 'validator' | 'transfer' | 'casestudy') => {
     setViewMode(mode);
   };
 
@@ -96,16 +130,17 @@ export default function Home() {
       case 'search':
         return (
           <>
-            {/* 統合検索フォーム */}
-            <AdvancedSearchForm 
+            {/* 統合検索フォーム（国内線・国際線分離対応） */}
+            <UnifiedSearchForm 
               onSearch={handleSearch} 
               isLoading={isLoading}
+              className="mb-6 premium-card"
             />
 
             {/* ローディング */}
             {isLoading && (
               <div className="flex items-center justify-center py-12">
-                <div className="bg-white rounded-xl shadow-lg p-8">
+                <div className="bg-white rounded-xl shadow-premium p-8 glass-effect">
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                     <span className="text-gray-800">検索中...</span>
@@ -116,7 +151,7 @@ export default function Home() {
 
             {/* エラー表示 */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8 shadow-lg">
                 <div className="flex items-center space-x-2">
                   <div className="bg-red-100 p-2 rounded-full">
                     <MapPin className="h-5 w-5 text-red-600" />
@@ -131,8 +166,8 @@ export default function Home() {
 
             {/* 検索結果エリア - 明確な境界 */}
             {searchResult && !isLoading && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-1 mt-8">
-                <div className="bg-white rounded-lg shadow-sm">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-1 mt-8 premium-card">
+                <div className="bg-white rounded-lg shadow-premium">
                   {/* 検索結果コンテンツ */}
                   <div className="p-6">
                     <SearchResults 
@@ -141,7 +176,6 @@ export default function Home() {
                       onCreateAlert={handleCreateAlert}
                       onViewCalendar={handleViewCalendar}
                     />
-                    
                     {/* 統合マイル比較 */}
                     <div className="mt-6">
                       <UnifiedMileComparison 
@@ -155,12 +189,12 @@ export default function Home() {
                 </div>
               </div>
             )}
-            
+
             {/* 比較分析セクション - 検索結果がある場合のみ表示 */}
             {searchResult && lastSearchForm && !isLoading && (
               <div className="mt-8 space-y-6">
                 {/* 支払方法比較 */}
-                <div className="bg-gray-50 rounded-xl p-6">
+                <div className="bg-gray-50 rounded-xl p-6 premium-card">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
                     支払方法比較
@@ -180,23 +214,20 @@ export default function Home() {
 
             {/* 初期状態のヘルプ */}
             {!searchResult && !isLoading && !error && (
-              <div className="bg-white rounded-xl shadow-lg p-8 text-center mt-8">
+              <div className="bg-white rounded-xl shadow-premium p-8 text-center mt-8 glass-effect">
                 <div className="max-w-2xl mx-auto">
                   <div className="bg-blue-100 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <MapPin className="h-8 w-8 text-blue-600" />
+                    <Award className="h-8 w-8 text-blue-600" />
                   </div>
-                  
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4" style={{letterSpacing:'-0.01em'}}>
                     航空券・マイル検索を始めましょう
                   </h2>
-                  
                   <p className="text-gray-800 mb-6">
-                    出発地・到着地・搭乗日を選択して、ANA・JAL・ソラシドエアの
-                    マイル要件と現金価格を一括比較できます。
+                    出発地・到着地・搭乗日を選択して、ANA・JAL・Peach・Jetstar・Skymark等
+                    ファクトチェック済みのマイル要件と現金価格を一括比較できます。
                   </p>
-
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                    <div className="text-center">
+                    <div className="text-center premium-card">
                       <div className="bg-green-100 p-3 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center">
                         <span className="text-green-600 font-bold">1</span>
                       </div>
@@ -205,8 +236,7 @@ export default function Home() {
                         出発地・到着地・日程を入力
                       </p>
                     </div>
-                    
-                    <div className="text-center">
+                    <div className="text-center premium-card">
                       <div className="bg-blue-100 p-3 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center">
                         <span className="text-blue-600 font-bold">2</span>
                       </div>
@@ -215,8 +245,7 @@ export default function Home() {
                         各社のマイル・価格を比較
                       </p>
                     </div>
-                    
-                    <div className="text-center">
+                    <div className="text-center premium-card">
                       <div className="bg-purple-100 p-3 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center">
                         <span className="text-purple-600 font-bold">3</span>
                       </div>
@@ -226,44 +255,7 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
-          </>
-        );
-
-      case 'global':
-        return (
-          <>
-            {/* グローバルモードでの統合検索フォーム */}
-            <EnhancedSearchForm 
-              onSearch={(data) => {
-                // グローバル検索結果を検索ページでも表示
-                handleSearch(data);
-              }}
-              isLoading={isLoading}
-            />
-
-            {/* グローバルマイル専用の追加分析 */}
-            {!isLoading && !error && (
-              <div className="mt-8 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Award className="h-5 w-5 mr-2 text-purple-600" />
-                  世界の航空会社マイル分析
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="bg-white rounded-lg p-4 shadow-sm">
-                    <h4 className="font-semibold text-gray-900 mb-2">アライアンス別比較</h4>
-                    <p className="text-sm text-gray-600">スターアライアンス、ワンワールド、スカイチームの最適解を表示</p>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 shadow-sm">
-                    <h4 className="font-semibold text-gray-900 mb-2">マイル効率ランキング</h4>
-                    <p className="text-sm text-gray-600">1マイル当たりの価値とCPM（Cost Per Mile）を計算</p>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 shadow-sm">
-                    <h4 className="font-semibold text-gray-900 mb-2">ポイント移行最適化</h4>
-                    <p className="text-sm text-gray-600">クレジットカードポイントからの最適な移行ルートを提案</p>
-                  </div>
+                  {/* ファクトチェック根拠: 設計書「UI設計」「型定義」「ファクトチェック」, ANA/JAL公式, Material Design, Apple HIG */}
                 </div>
               </div>
             )}
@@ -274,8 +266,8 @@ export default function Home() {
         const targetDate = lastSearchForm?.date ? new Date(lastSearchForm.date) : new Date();
         return (
           <PriceCalendar 
-            departure={lastSearchForm?.departure || searchResult?.route.departure || 'HND'}
-            arrival={lastSearchForm?.arrival || searchResult?.route.arrival || 'CTS'}
+            departure={lastSearchForm?.departure || searchResult?.route?.departure || 'HND'}
+            arrival={lastSearchForm?.arrival || searchResult?.route?.arrival || 'CTS'}
             onDateSelect={handleDateSelect}
             lastSearchDate={lastSearchForm?.date || ''}
             searchRoute={lastSearchForm ? { departure: lastSearchForm.departure, arrival: lastSearchForm.arrival } : { departure: 'HND', arrival: 'CTS' }}
@@ -289,9 +281,9 @@ export default function Home() {
       case 'calculator':
         return (
           <ValueCalculator 
-            departure={searchResult?.route.departure || 'HND'}
-            arrival={searchResult?.route.arrival || 'CTS'}
-            cashPrice={searchResult?.airlines[0]?.cashPrice || 25000}
+            departure={searchResult?.route?.departure || 'HND'}
+            arrival={searchResult?.route?.arrival || 'CTS'}
+            cashPrice={searchResult?.airlines?.[0]?.cashPrice || 25000}
           />
         );
 

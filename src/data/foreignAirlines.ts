@@ -307,9 +307,9 @@ export function getForeignAirlineMiles(
       if (baseMiles) {
         // 往復なので×2
         return {
-          off: baseMiles.off * 2,
+          off: (baseMiles.off || baseMiles.regular) * 2,
           regular: baseMiles.regular * 2,
-          peak: baseMiles.peak * 2
+          peak: (baseMiles.peak || baseMiles.regular) * 2
         };
       }
       return null;

@@ -180,8 +180,10 @@ export default function MileValueComparison({ result }: MileValueComparisonProps
               <span className="font-medium text-green-700">{bestMileOption.airlineName}</span>のマイル特典航空券がお得です！
             </p>
             <p className="mt-1 text-xs text-gray-600">
-              この特典での価値: <span className="font-medium">{bestMileOption.mileValue.toFixed(2)}円/マイル</span>
-              （{bestMileOption.airlineName}基準価値: {bestMileOption.baselineMileValue.toFixed(1)}円/マイル）
+              このルートでのマイル価値: <span className="font-medium text-green-600">{bestMileOption.mileValue.toFixed(2)}円/マイル</span>
+            </p>
+            <p className="text-xs text-gray-500">
+              {bestMileOption.airlineName}の一般的な価値（{bestMileOption.baselineMileValue.toFixed(1)}円/マイル）を上回っています
             </p>
             <p className="mt-1 text-xs text-gray-600">
               {bestMileOption.interpretation} - 約{bestMileOption.savings.toLocaleString()}円相当のボーナス価値
@@ -251,9 +253,9 @@ export default function MileValueComparison({ result }: MileValueComparisonProps
                 <td className="py-3 text-right font-semibold text-gray-900">
                   {item.hasMileProgram ? (
                     <div>
-                      <div>{item.mileValue.toFixed(2)}円/マイル</div>
+                      <div className="text-green-600 font-bold">🟢 {item.mileValue.toFixed(2)}円/マイル</div>
                       <div className="text-xs text-gray-500">
-                        (基準: {item.baselineMileValue.toFixed(1)}円)
+                        標準価値: {item.baselineMileValue.toFixed(1)}円
                       </div>
                     </div>
                   ) : (

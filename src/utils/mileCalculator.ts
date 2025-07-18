@@ -2,9 +2,9 @@ import {
   SearchForm, 
   SearchResult, 
   AirlineMileInfo, 
-  Airline, 
-  Route 
+  Airline 
 } from '../types/index';
+import { Route, RouteData } from '../types/core';
 import { 
   airports, 
   routes, 
@@ -18,8 +18,11 @@ import {
 import { 
   internationalAirports,
   internationalRoutes,
-  getInternationalMiles,
+  internationalMileCharts,
+  getInternationalRegion,
+  fuelSurcharge,
   getFuelSurcharge,
+  getInternationalMiles,
   otherAirlinesMileChart
 } from '../data/internationalMiles';
 
@@ -29,7 +32,7 @@ const debugLog = (message: string, data?: unknown) => {
 };
 
 // 路線検索（国内線・国際線対応）
-export function findRoute(departure: string, arrival: string): Route | null {
+export function findRoute(departure: string, arrival: string): RouteData | null {
   debugLog('Finding route', { departure, arrival });
   
   // 国内線路線を先に検索
@@ -58,11 +61,11 @@ export function getAirport(code: string) {
   debugLog('Getting airport', code);
   
   // 国内空港を先に検索
-  let airport = airports.find(airport => airport.code === code);
+  let airport = (airports as any)[code];
   
   // 国内空港で見つからない場合は国際空港を検索
   if (!airport) {
-    airport = internationalAirports.find(airport => airport.code === code);
+    airport = (internationalAirports as any)[code];
   }
   
   debugLog('Airport found', airport);
@@ -71,7 +74,7 @@ export function getAirport(code: string) {
 
 // 国際線かどうかを判定
 export function isInternationalRoute(departure: string, arrival: string): boolean {
-  const domesticCodes = airports.map(a => a.code);
+  const domesticCodes = Object.keys(airports);
   const isDepartureInternational = !domesticCodes.includes(departure);
   const isArrivalInternational = !domesticCodes.includes(arrival);
   
@@ -91,9 +94,9 @@ export function calculateMiles(
   // 国際線の場合
   if (departure && arrival && isInternationalRoute(departure, arrival)) {
     const intlMiles = getInternationalMiles(airline, departure, arrival, season);
-    if (intlMiles) {
-      debugLog('International miles calculated', intlMiles[season]);
-      return intlMiles[season];
+    if (intlMiles && intlMiles > 0) {
+      debugLog('International miles calculated', intlMiles);
+      return intlMiles;
     }
   }
   
@@ -125,13 +128,13 @@ export function calculateMiles(
       }
   }
 
-  const requirement = mileChart[distanceCategory];
+  const requirement = (mileChart as any)[distanceCategory];
   if (!requirement) {
     debugLog('No requirement found for distance category', distanceCategory);
     return 0;
   }
 
-  const miles = requirement[season];
+  const miles = (requirement as any)[season];
   debugLog('Domestic miles calculated', miles);
   return miles;
 }
@@ -196,7 +199,7 @@ export function estimateCashPrice(airline: Airline, distance: number, season: 'r
 }
 
 // ディスカウント情報を取得（モック）
-export function getDiscountInfo(airline: Airline, route: Route, date: string): {
+export function getDiscountInfo(airline: Airline, route: RouteData, date: string): {
   type: 'tokutabi' | 'timesale' | 'campaign';
   discountedMiles: number;
   validUntil: string;
@@ -213,7 +216,7 @@ export function getDiscountInfo(airline: Airline, route: Route, date: string): {
     if (selectedType) {
       return {
         type: selectedType,
-        discountedMiles: Math.round(calculateMiles(airline, route.distance, getSeason(date)) * 0.7),
+        discountedMiles: Math.round(calculateMiles(airline, route.distance || 500, getSeason(date)) * 0.7),
         validUntil: '2025-08-31'
       };
     }
@@ -257,7 +260,7 @@ export async function searchFlights(searchForm: SearchForm): Promise<SearchResul
   const airlineResults: AirlineMileInfo[] = airlines.map(airline => {
     debugLog(`Processing ${airline}`);
     
-    const cashPrice = estimateCashPrice(airline, route.distance, season);
+    const cashPrice = estimateCashPrice(airline, route.distance || 500, season);
     const bookingStartDays = getBookingStartDays(airline);
     const discount = getDiscountInfo(airline, route, searchForm.date);
     
@@ -267,9 +270,9 @@ export async function searchFlights(searchForm: SearchForm): Promise<SearchResul
     const result: AirlineMileInfo = {
       airline,
       miles: {
-        regular: calculateMiles(airline, route.distance, 'regular', searchForm.departure, searchForm.arrival),
-        peak: calculateMiles(airline, route.distance, 'peak', searchForm.departure, searchForm.arrival),
-        off: calculateMiles(airline, route.distance, 'off', searchForm.departure, searchForm.arrival),
+        regular: calculateMiles(airline, route.distance || 500, 'regular', searchForm.departure, searchForm.arrival),
+        peak: calculateMiles(airline, route.distance || 500, 'peak', searchForm.departure, searchForm.arrival),
+        off: calculateMiles(airline, route.distance || 500, 'off', searchForm.departure, searchForm.arrival),
       },
       cashPrice,
       bookingStartDays,
@@ -282,6 +285,8 @@ export async function searchFlights(searchForm: SearchForm): Promise<SearchResul
   });
 
   const finalResult = {
+    flights: [], // 空の配列として初期化
+    total: airlineResults.length, // 航空会社数
     route,
     date: searchForm.date,
     airlines: airlineResults,

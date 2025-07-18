@@ -1,0 +1,454 @@
+/**
+ * 統合マイレージ特典航空券比較コンポーネント
+ * 
+ * mileageDatabase.tsのデータを使って包括的な比較を提供
+ */
+
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { Plane, Calculator, Info, ExternalLink, AlertCircle, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { 
+  MILEAGE_DATABASE, 
+  getAllPrograms, 
+  getRequiredMiles, 
+  getFuelSurcharge,
+  ROUTE_NAMES,
+  CABIN_CLASS_NAMES,
+  type MileageProgram 
+} from '../data';
+
+interface ComprehensiveMileageComparisonProps {
+  route: {
+    departure: string;
+    arrival: string;
+  };
+  cabinClass: 'economy' | 'premium' | 'premiumEconomy' | 'business' | 'first';
+  isDomestic?: boolean;
+}
+
+export default function ComprehensiveMileageComparison({ 
+  route, 
+  cabinClass, 
+  isDomestic = false 
+}: ComprehensiveMileageComparisonProps) {
+  const [sortBy, setSortBy] = useState<'miles' | 'surcharge' | 'total'>('miles');
+  const [showDetails, setShowDetails] = useState<string | null>(null);
+
+  // 路線コードを生成
+  const routeCode = `${route.departure}-${route.arrival}`;
+  const routeName = ROUTE_NAMES[routeCode] || `${route.departure} ⇔ ${route.arrival}`;
+
+  // 比較データを計算
+  const comparisonData = useMemo(() => {
+    const programs = getAllPrograms();      const results: Array<{
+        program: MileageProgram;
+        miles: {
+          min?: number | undefined;
+          max?: number | undefined;
+          display: string;
+        };
+        fuelSurcharge: {
+          amount: number;
+          currency: string;
+          display: string;
+        };
+        totalCost: number; // 最小マイル + 燃油サーチャージ（円換算）
+        availability: 'available' | 'limited' | 'unavailable';
+        notes?: string;
+      }> = [];
+
+    programs.forEach(program => {
+      const mileageRange = getRequiredMiles(program.code, routeCode, cabinClass, isDomestic);
+      const surcharge = getFuelSurcharge(program.code, routeCode);
+      
+      if (!mileageRange && !surcharge) {
+        // データが全くない場合はスキップ
+        return;
+      }
+      
+      let availability: 'available' | 'limited' | 'unavailable' = 'unavailable';
+      let milesDisplay = 'データなし';
+      let totalCost = 999999; // 高い値をデフォルトに
+      
+      if (mileageRange) {
+        availability = 'available';
+        if (mileageRange.min && mileageRange.max) {
+          milesDisplay = `${mileageRange.min?.toLocaleString()}～${mileageRange.max?.toLocaleString()}`;
+          totalCost = mileageRange.min;
+        } else if (mileageRange.seasons) {
+          milesDisplay = `${mileageRange.seasons.low.toLocaleString()}～${mileageRange.seasons.high.toLocaleString()}`;
+          totalCost = mileageRange.seasons.low;
+        }
+      } else {
+        availability = 'limited';
+        milesDisplay = '要確認';
+      }
+      
+      const surchargeDisplay = surcharge 
+        ? `¥${surcharge.amount.toLocaleString()}`
+        : 'なし/要確認';
+      
+      // 燃油サーチャージを総コストに加算（マイル価値を1マイル=2円と仮定）
+      const surchargeInMiles = surcharge ? Math.round(surcharge.amount / 2) : 0;
+      totalCost += surchargeInMiles;
+      
+      const resultEntry: {
+        program: MileageProgram;
+        miles: {
+          min?: number | undefined;
+          max?: number | undefined;
+          display: string;
+        };
+        fuelSurcharge: {
+          amount: number;
+          currency: string;
+          display: string;
+        };
+        totalCost: number;
+        availability: 'available' | 'limited' | 'unavailable';
+        notes?: string;
+      } = {
+        program,
+        miles: {
+          min: mileageRange?.min || mileageRange?.seasons?.low || undefined,
+          max: mileageRange?.max || mileageRange?.seasons?.high || undefined,
+          display: milesDisplay
+        },
+        fuelSurcharge: {
+          amount: surcharge?.amount || 0,
+          currency: surcharge?.currency || 'JPY',
+          display: surchargeDisplay
+        },
+        totalCost,
+        availability
+      };
+
+      // notesがある場合のみ追加
+      if (availability === 'limited') {
+        resultEntry.notes = 'プログラム要確認';
+      }
+      
+      results.push(resultEntry);
+    });
+
+    // ソート
+    results.sort((a, b) => {
+      switch (sortBy) {
+        case 'miles':
+          const aMiles = a.miles.min || 999999;
+          const bMiles = b.miles.min || 999999;
+          return aMiles - bMiles;
+        case 'surcharge':
+          return a.fuelSurcharge.amount - b.fuelSurcharge.amount;
+        case 'total':
+          return a.totalCost - b.totalCost;
+        default:
+          return 0;
+      }
+    });
+
+    return results;
+  }, [routeCode, cabinClass, isDomestic, sortBy]);
+
+  const openProgramWebsite = (program: MileageProgram) => {
+    window.open(program.website, '_blank', 'noopener,noreferrer');
+  };
+
+  // データ品質ステータスアイコンとスタイルを取得
+  const getDataQualityIndicator = (program: MileageProgram) => {
+    const { status, source, notes } = program.dataQuality;
+    
+    switch (status) {
+      case 'verified':
+        return {
+          icon: <CheckCircle className="w-4 h-4 text-green-600" />,
+          bgColor: 'bg-green-50',
+          textColor: 'text-green-800',
+          label: '検証済み',
+          description: `${source === 'official_pdf' ? 'PDF確認済み' : 'スクリーンショット検証済み'}`
+        };
+      case 'preliminary':
+        return {
+          icon: <AlertTriangle className="w-4 h-4 text-yellow-600" />,
+          bgColor: 'bg-yellow-50',
+          textColor: 'text-yellow-800',
+          label: '暫定値',
+          description: 'Phase 1で厳格検証予定'
+        };
+      case 'pending':
+        return {
+          icon: <Clock className="w-4 h-4 text-blue-600" />,
+          bgColor: 'bg-blue-50',
+          textColor: 'text-blue-800',
+          label: '検証待ち',
+          description: '48時間以内に厳格ファクトチェック予定'
+        };
+      default:
+        return {
+          icon: <AlertCircle className="w-4 h-4 text-gray-600" />,
+          bgColor: 'bg-gray-50',
+          textColor: 'text-gray-800',
+          label: '要確認',
+          description: 'データ検証が必要'
+        };
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-6">
+      {/* ヘッダー */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <Calculator className="w-6 h-6 text-purple-600" />
+          <h2 className="text-xl font-bold text-gray-900">
+            統合マイレージ特典航空券比較
+          </h2>
+        </div>
+        <p className="text-gray-600 mb-3">
+          {routeName} - {CABIN_CLASS_NAMES[cabinClass]} の必要マイル数・燃油サーチャージ比較
+        </p>
+        
+        {/* Phase 1 告知バナー */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <Clock className="w-5 h-5 text-blue-600 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-2">
+                🚀 厳格ファクトチェック進行中（Phase 1）
+              </h3>
+              <p className="text-blue-800 text-sm mb-2">
+                現在、優先3路線（NRT⇔LAX/LHR/SIN）のデータを48時間以内に厳格検証中です。
+              </p>
+              <ul className="text-blue-700 text-xs space-y-1">
+                <li>• <strong>固定チャート制プログラム</strong>: 公式PDF手作業読み取り + 二次確認</li>
+                <li>• <strong>ダイナミック制プログラム</strong>: 2025-10-15検索 + スクリーンショット証跡</li>
+                <li>• <strong>現在表示中のデータ</strong>: 暫定値（検証完了次第更新）</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ソートオプション */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-gray-600">並び順:</span>
+          <div className="flex gap-1">
+            {[
+              { key: 'miles' as const, label: '必要マイル順' },
+              { key: 'surcharge' as const, label: '燃油サーチャージ順' },
+              { key: 'total' as const, label: '総コスト順' }
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setSortBy(key)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  sortBy === key
+                    ? 'bg-purple-100 text-purple-800'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 比較テーブル */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-2 font-semibold text-gray-900">プログラム</th>
+              <th className="text-right py-3 px-2 font-semibold text-gray-900">必要マイル</th>
+              <th className="text-right py-3 px-2 font-semibold text-gray-900">燃油サーチャージ</th>
+              <th className="text-center py-3 px-2 font-semibold text-gray-900">データ品質</th>
+              <th className="text-center py-3 px-2 font-semibold text-gray-900">日本語対応</th>
+              <th className="text-center py-3 px-2 font-semibold text-gray-900">アクション</th>
+            </tr>
+          </thead>
+          <tbody>
+            {comparisonData.map(({ program, miles, fuelSurcharge, availability, notes }, index) => {
+              const qualityIndicator = getDataQualityIndicator(program);
+              
+              return (
+              <React.Fragment key={program.code}>
+                <tr className={`border-b border-gray-100 ${
+                  availability === 'available' ? 'bg-white' : 
+                  availability === 'limited' ? 'bg-yellow-50' : 'bg-gray-50'
+                }`}>
+                  {/* プログラム名 */}
+                  <td className="py-4 px-2">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {program.nameJa}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {program.alliance && `${program.alliance} • `}
+                          {program.name}
+                        </div>
+                        {notes && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <AlertCircle className="w-3 h-3 text-amber-500" />
+                            <span className="text-xs text-amber-600">{notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* 必要マイル */}
+                  <td className="py-4 px-2 text-right">
+                    <div className="font-medium text-gray-900">
+                      {miles.display}
+                    </div>
+                    {availability === 'available' && miles.min && (
+                      <div className="text-xs text-gray-500">
+                        片道 {miles.min === miles.max ? '固定' : '変動制'}
+                      </div>
+                    )}
+                  </td>
+
+                  {/* 燃油サーチャージ */}
+                  <td className="py-4 px-2 text-right">
+                    <div className={`font-medium ${
+                      fuelSurcharge.amount === 0 ? 'text-green-600' : 'text-gray-900'
+                    }`}>
+                      {fuelSurcharge.display}
+                    </div>
+                    {fuelSurcharge.amount === 0 && (
+                      <div className="text-xs text-green-600">無料</div>
+                    )}
+                  </td>
+
+                  {/* データ品質 */}
+                  <td className="py-4 px-2 text-center">
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${qualityIndicator.bgColor} ${qualityIndicator.textColor}`}>
+                      {qualityIndicator.icon}
+                      <span>{qualityIndicator.label}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {qualityIndicator.description}
+                    </div>
+                  </td>
+
+                  {/* 日本語対応 */}
+                  <td className="py-4 px-2 text-center">
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        program.japaneseSupport.website 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        WEB {program.japaneseSupport.website ? '○' : '×'}
+                      </span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        program.japaneseSupport.callCenter 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        電話 {program.japaneseSupport.callCenter ? '○' : '×'}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* アクション */}
+                  <td className="py-4 px-2 text-center">
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => openProgramWebsite(program)}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        公式サイト
+                      </button>
+                      <button
+                        onClick={() => setShowDetails(showDetails === program.code ? null : program.code)}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200 transition-colors"
+                      >
+                        <Info className="w-3 h-3" />
+                        詳細
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* 詳細情報（展開式） */}
+                {showDetails === program.code && (
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <td colSpan={6} className="py-4 px-2">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-2">予約条件</h4>
+                          <ul className="space-y-1 text-gray-600">
+                            <li>• 予約開始: {program.bookingRules.advanceBookingDays}日前</li>
+                            <li>• 予約締切: WEB {program.bookingRules.bookingDeadline.web}</li>
+                            <li>• 変更: {program.bookingRules.changePolicy === 'allowed' ? '可能' : program.bookingRules.changePolicy === 'not_allowed' ? '不可' : '制限あり'}</li>
+                            <li>• 取消手数料: 国内 {program.bookingRules.cancellationFee.domestic}</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-2">サポート情報</h4>
+                          <ul className="space-y-1 text-gray-600">
+                            <li>• アライアンス: {program.alliance || 'なし'}</li>
+                            <li>• 日本語WEB: {program.japaneseSupport.website ? 'あり' : 'なし'}</li>
+                            <li>• 日本語電話: {program.japaneseSupport.callCenter ? 'あり' : 'なし'}</li>
+                            {program.japaneseSupport.notes && (
+                              <li>• 備考: {program.japaneseSupport.notes}</li>
+                            )}
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-2">データ品質情報</h4>
+                          <ul className="space-y-1 text-gray-600">
+                            <li>• ステータス: {qualityIndicator.label}</li>
+                            <li>• 情報源: {program.dataQuality.source}</li>
+                            <li>• 最終更新: {program.lastUpdated}</li>
+                            {program.dataQuality.lastVerified && (
+                              <li>• 検証日: {program.dataQuality.lastVerified}</li>
+                            )}
+                            {program.dataQuality.notes && (
+                              <li>• 備考: {program.dataQuality.notes}</li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* フッター情報 */}
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <div className="flex items-start gap-2 text-xs text-gray-500">
+          <Info className="w-4 h-4 mt-0.5 text-gray-400" />
+          <div>
+            <p className="mb-2">
+              <strong>📊 段階的データ構築について:</strong>
+            </p>
+            <ul className="space-y-1 mb-3">
+              <li>• <strong>Phase 1</strong>: 優先3路線（NRT⇔LAX/LHR/SIN）を48時間以内に厳格ファクトチェック</li>
+              <li>• <strong>Phase 2</strong>: 残り6路線を順次追加（準備中フラグで骨格は維持）</li>
+              <li>• <strong>検証方法</strong>: 固定チャート制＝PDF手読み取り、ダイナミック制＝検索日固定スクリーンショット</li>
+            </ul>
+            <p className="mb-1">
+              <strong>注意事項:</strong> 現在表示中の数値は暫定値です。厳格ファクトチェック完了次第、
+              「データ品質」列が「検証済み」に更新されます。
+            </p>
+            <p>
+              燃油サーチャージは2025年7月時点の参考値です。実際の予約時には変更されている可能性があります。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
