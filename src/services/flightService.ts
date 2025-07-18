@@ -187,6 +187,7 @@ export async function searchFlights(form: SearchForm): Promise<SearchResult> {
     // Next.js API Routeを呼び出し
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒タイムアウト
+    let apiResponse: any;
 
     try {
       const response = await fetch('/api/flights/search', {
@@ -218,7 +219,7 @@ export async function searchFlights(form: SearchForm): Promise<SearchResult> {
         }
       }
 
-      const apiResponse = await response.json();
+      apiResponse = await response.json();
       
       if (!apiResponse.success) {
         throw new Error(apiResponse.message || 'APIからエラーレスポンスを受信しました');
