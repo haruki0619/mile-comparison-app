@@ -33,7 +33,7 @@ export const AIRPORTS: Airport[] = [
   { code: 'SDJ', name: '仙台国際空港', city: '仙台', region: '東北' },
   { code: 'AOJ', name: '青森空港', city: '青森', region: '東北' },
   { code: 'AXT', name: '秋田空港', city: '秋田', region: '東北' },
-  { code: 'SHM', name: '庄内空港', city: '庄内', region: '東北' },
+  { code: 'SYO', name: '庄内空港', city: '庄内', region: '東北' },
   { code: 'HNA', name: '花巻空港', city: '花巻', region: '東北' },
   { code: 'GAJ', name: '山形空港', city: '山形', region: '東北' },
   { code: 'ONJ', name: '大館能代空港', city: '大館', region: '東北' },
@@ -107,7 +107,7 @@ export const AIRPORTS: Airport[] = [
   { code: 'FCO', name: 'フィウミチーノ空港', city: 'ローマ', region: 'ヨーロッパ' },
   { code: 'ARN', name: 'アーランダ空港', city: 'ストックホルム', region: 'ヨーロッパ' },
   { code: 'CPH', name: 'コペンハーゲン・カストラップ空港', city: 'コペンハーゲン', region: 'ヨーロッパ' },
-  { code: 'ZUR', name: 'チューリッヒ空港', city: 'チューリッヒ', region: 'ヨーロッパ' },
+  { code: 'ZRH', name: 'チューリッヒ空港', city: 'チューリッヒ', region: 'ヨーロッパ' },
   { code: 'VIE', name: 'ウィーン国際空港', city: 'ウィーン', region: 'ヨーロッパ' },
 
   // === オセアニア ===
